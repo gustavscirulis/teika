@@ -1,0 +1,727 @@
+/*
+ * Tokens are the app's, not new ones. --bg, --fg, --muted and --rule are carried
+ * over verbatim from docs/privacy.html, which in turn matches the Metal clear
+ * colour (0.04, 0.04, 0.05) the orb renders against.
+ */
+:root {
+  --bg: #0a0a0d;
+  --fg: #f2f2f4;
+  --muted: #8e8e96;
+  --rule: #232329;
+
+  /* Derived, for surfaces the app expresses as glass rather than as a colour. */
+  --glass: rgba(255, 255, 255, 0.055);
+  --glass-rim: rgba(255, 255, 255, 0.14);
+  --glass-rim-strong: rgba(255, 255, 255, 0.28);
+  --record-red: #e5484d;
+
+  --measure: 34rem;
+  /* Inverted against the usual ramp: the gutter has to grow as the viewport
+     shrinks, because a phone is the one place the measure runs to both edges.
+     48px on phones, easing back to the wide viewports' 40px by tablet width. */
+  --gutter: clamp(2.5rem, 6rem - 8vw, 3rem);
+  --section-gap: clamp(5.5rem, 13vh, 8.5rem);
+
+  /* An exponential ease-out. Everything on this page moves on one of these. */
+  --ease: cubic-bezier(0.2, 0.9, 0.25, 1);
+  --ease-soft: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* The fixed header covers the top of every scroll position, so the close
+     offsets its centring by this much to sit optically between header and
+     footer rather than between viewport top and footer. */
+  --header-h: 63px;
+
+  /* Measured. The close section subtracts this to fill the viewport exactly, so
+     it must never exceed the real footer height: under-estimating just makes the
+     close taller than needed, while over-estimating lets the previous section
+     back on screen. The footer's two rows wrap into three below 355px. */
+  --footer-h: 170px;
+
+  --orb-dim: 0;
+
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 400 17px/1.65 -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI Variable Text',
+    'Segoe UI', system-ui, Roboto, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-synthesis-weight: none;
+  overflow-x: hidden;
+}
+
+/* ── Browser surfaces the design still owns ─────────────────────────────── */
+
+::selection {
+  background: rgba(242, 242, 244, 0.16);
+  color: var(--fg);
+}
+
+:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+:where(a, button, [tabindex]):focus:not(:focus-visible) {
+  outline: none;
+}
+
+@supports (scrollbar-color: white black) {
+  html {
+    scrollbar-color: #33333a var(--bg);
+    scrollbar-width: thin;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2a31;
+  border: 3px solid var(--bg);
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3a3a43;
+}
+
+/* ── The cloud ──────────────────────────────────────────────────────────── */
+
+.orb,
+.orb-fallback {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: calc(1 - var(--orb-dim));
+  transition: opacity 0.5s var(--ease-soft);
+}
+
+/* No WebGL2: a single soft light, so the page still has one source rather than
+   a hole where the cloud should be. */
+.orb-fallback {
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(255, 255, 255, 0.13) 0%,
+    rgba(255, 255, 255, 0.05) 26%,
+    rgba(255, 255, 255, 0) 62%
+  );
+}
+
+/* ── Type ───────────────────────────────────────────────────────────────── */
+
+h1,
+h2 {
+  font-weight: 600;
+  letter-spacing: -0.028em;
+  line-height: 1.08;
+  text-wrap: balance;
+  margin: 0;
+}
+
+h1 {
+  font-size: clamp(2.4rem, 7.2vw, 4.25rem);
+}
+
+h2 {
+  font-size: clamp(1.85rem, 4.6vw, 2.9rem);
+  line-height: 1.12;
+}
+
+p {
+  margin: 0;
+  text-wrap: pretty;
+}
+
+a {
+  color: inherit;
+}
+
+.lede {
+  font-size: clamp(1.0625rem, 2.1vw, 1.25rem);
+  line-height: 1.55;
+  letter-spacing: -0.011em;
+  color: var(--muted);
+  max-width: var(--measure);
+}
+
+.lede strong {
+  color: var(--fg);
+  font-weight: 500;
+}
+
+.caption {
+  margin-top: 1.125rem;
+  color: var(--muted);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  max-width: 30rem;
+}
+
+/* ── Shell and rhythm ───────────────────────────────────────────────────── */
+
+main {
+  position: relative;
+  z-index: 1;
+}
+
+.shell {
+  width: 100%;
+  max-width: 46rem;
+  margin: 0 auto;
+  padding-inline: var(--gutter);
+}
+
+.movement {
+  position: relative;
+  padding-block: var(--section-gap);
+}
+
+/* More space above a heading than below it, one rhythm for the whole page. */
+.movement h2 {
+  margin-bottom: 1.5rem;
+}
+
+/* ── Hero ───────────────────────────────────────────────────────────────── */
+
+.hero {
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  /* Symmetric, so the block sits on the viewport's centre line. The padding is
+     only a floor for short windows, where it keeps clear of the header. */
+  padding-block: 5.5rem;
+}
+
+.hero h1 {
+  margin-bottom: 1.75rem;
+  /* The break is placed by hand, so balancing would only fight it. */
+  text-wrap: pretty;
+}
+
+.hero .lede {
+  max-width: 30rem;
+}
+
+.cta {
+  margin-top: 2.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.875rem 1.25rem;
+}
+
+/* A quiet price signal: visible at the exact moment someone chooses to install. */
+.price-label {
+  color: var(--muted);
+  font-size: 0.9375rem;
+  font-weight: 450;
+  line-height: 1.2;
+  text-shadow: 0 1px 8px rgba(10, 10, 13, 0.9);
+}
+
+.price-label a {
+  color: var(--fg);
+  text-underline-offset: 0.2em;
+  text-decoration-color: rgba(242, 242, 244, 0.45);
+  transition: text-decoration-color 0.18s var(--ease);
+}
+
+.price-label a:hover {
+  text-decoration-color: var(--fg);
+}
+
+/*
+ * The cloud stays bright the whole way down, which means text anywhere can land
+ * on a bright particle. Rather than putting the dark ground back and burying the
+ * cloud, the type carries its own: a real shadow with an offset and a blur,
+ * invisible against the black and just enough to hold an edge against a
+ * particle. Measured worst case without it was 1.13:1.
+ */
+.movement h1,
+.movement h2,
+.movement .lede,
+.movement .caption,
+.movement .steps li {
+  text-shadow:
+    0 1px 14px rgba(10, 10, 13, 0.9),
+    0 0 4px rgba(10, 10, 13, 0.7);
+}
+
+/*
+ * The same cloud compressed into a phone viewport puts far more bright particle
+ * per glyph, and the lede lands on the densest part of it. Deeper pools, spread
+ * wide enough that the extra darkness has no edge to read as a halo.
+ */
+@media (max-width: 34rem) {
+  .movement h1,
+  .movement h2,
+  .movement .lede,
+  .movement .caption,
+  .movement .steps li {
+    text-shadow:
+      0 0 10px rgba(10, 10, 13, 0.92),
+      0 1px 34px rgba(10, 10, 13, 0.95),
+      0 0 80px rgba(10, 10, 13, 0.7);
+  }
+
+  /* The lede is the one grey on the page, so it starts with the least contrast
+     to spend and needs the ground opaque under it. */
+  .movement .lede {
+    text-shadow:
+      0 0 12px rgba(10, 10, 13, 1),
+      0 1px 38px rgba(10, 10, 13, 1),
+      0 0 90px rgba(10, 10, 13, 0.88);
+  }
+}
+
+/* ── The capsule control, from ContentView.downloadButton ───────────────── */
+
+.capsule {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  padding: 0.875rem 1.375rem;
+  border-radius: 999px;
+  font-size: 1.0625rem;
+  font-weight: 500;
+  letter-spacing: -0.011em;
+  text-decoration: none;
+  color: var(--fg);
+  background: var(--glass);
+  border: 1px solid var(--glass-rim);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  /* Transform belongs to Framer Motion; only colour and shadow live here. */
+  transition:
+    background 0.22s var(--ease),
+    border-color 0.22s var(--ease),
+    box-shadow 0.22s var(--ease);
+}
+
+.capsule svg {
+  width: 1em;
+  height: 1.25em;
+  flex: none;
+  margin-top: -0.12em;
+}
+
+.capsule:hover {
+  background: rgba(255, 255, 255, 0.085);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 20px -10px rgba(0, 0, 0, 0.55);
+}
+
+/* The shadow collapses as the button goes down, so the press reads as contact. */
+.capsule:active {
+  box-shadow: 0 2px 6px -4px rgba(0, 0, 0, 0.45);
+  transition-duration: 0.08s;
+}
+
+/* ── Close ──────────────────────────────────────────────────────────────── */
+
+/*
+ * The close fills exactly the viewport minus the footer, so at the bottom of the
+ * page it occupies everything above the footer and the previous section is fully
+ * off-screen.
+ *
+ * Padding is deliberately asymmetric by exactly the header's height. Centring
+ * inside the border box puts the content on the middle of the *viewport* minus
+ * the footer — but the fixed header covers the top 63px, so that reads a half
+ * header high, which is measurably what it did. Padding the top by the header
+ * shifts the content down by half of it, landing it on the true optical centre
+ * between the header's underside and the footer's top edge.
+ */
+.close {
+  min-height: calc(100svh - var(--footer-h));
+  padding-top: calc(2rem + var(--header-h));
+  padding-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+}
+
+.close .lede {
+  margin-inline: auto;
+}
+
+.close .cta {
+  justify-content: center;
+}
+
+.close .cta-stacked {
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+
+.site-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  border-bottom: 1px solid transparent;
+  transition:
+    background 0.3s var(--ease),
+    border-color 0.3s var(--ease),
+    backdrop-filter 0.3s var(--ease);
+}
+
+.site-header[data-lifted] {
+  background: rgba(10, 10, 13, 0.72);
+  border-bottom-color: var(--rule);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+}
+
+.site-header-inner {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 1.0625rem var(--gutter);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.wordmark {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+}
+
+/* ── Footer ─────────────────────────────────────────────────────────────── */
+
+.site-footer {
+  position: relative;
+  z-index: 1;
+  padding-block: 3rem 4rem;
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+
+.site-footer-inner {
+  padding-top: 2rem;
+  border-top: 1px solid var(--rule);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.75rem 2rem;
+}
+
+.site-footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  margin-right: auto;
+}
+
+.site-footer a {
+  color: var(--muted);
+  text-decoration-color: rgba(142, 142, 150, 0.45);
+  text-underline-offset: 0.2em;
+  transition: color 0.18s var(--ease);
+}
+
+.site-footer a:hover {
+  color: var(--fg);
+  text-decoration-color: var(--fg);
+}
+
+.site-footer .copyright {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Prose pages (privacy, support) ─────────────────────────────────────── */
+
+.prose {
+  padding-block: clamp(7rem, 16vh, 9.5rem) clamp(5rem, 12vh, 7rem);
+}
+
+.prose h1 {
+  font-size: clamp(2rem, 5vw, 2.75rem);
+  margin-bottom: 0.5rem;
+}
+
+.prose .updated {
+  color: var(--muted);
+  font-size: 0.9375rem;
+  margin-bottom: 3rem;
+}
+
+.prose h2 {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  line-height: 1.4;
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--rule);
+  margin-bottom: 0.75rem;
+}
+
+.prose p,
+.prose ul {
+  max-width: var(--measure);
+  margin-bottom: 1.125rem;
+}
+
+.prose ul {
+  padding-left: 1.125rem;
+}
+
+.prose li {
+  margin-bottom: 0.5rem;
+}
+
+.prose .note {
+  color: var(--muted);
+}
+
+.prose a {
+  text-decoration-color: rgba(142, 142, 150, 0.6);
+  text-underline-offset: 0.2em;
+}
+
+.prose a:hover {
+  text-decoration-color: var(--fg);
+}
+
+.prose strong {
+  font-weight: 600;
+}
+
+/* ── Links inside body copy ─────────────────────────────────────────────── */
+
+.lede a {
+  color: var(--fg);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+/* ── The three steps ───────────────────────────────────────────────────── */
+
+/*
+ * Hairline rows, not cards. Each lead-in is the promise and the line under it is
+ * the mechanism, so the list scans on the bold alone.
+ */
+.steps {
+  list-style: none;
+  margin: 2.75rem 0 0;
+  padding: 0;
+  max-width: var(--measure);
+  color: var(--muted);
+}
+
+.steps li {
+  padding: 1.125rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.steps li:first-child {
+  border-top: 1px solid var(--rule);
+}
+
+.steps strong {
+  display: block;
+  margin-bottom: 0.2rem;
+  color: var(--fg);
+  font-weight: 500;
+}
+
+/* Below the wrap point the footer stacks to three rows. */
+@media (max-width: 350px) {
+  :root {
+    --footer-h: 207px;
+  }
+}
+
+/* ── Narrow ─────────────────────────────────────────────────────────────── */
+
+@media (max-width: 34rem) {
+  body {
+    font-size: 16px;
+  }
+
+  .hero h1 br {
+    display: none;
+  }
+}
+
+/* ── Skip link ──────────────────────────────────────────────────────────── */
+
+.skip-link {
+  position: fixed;
+  top: 0.75rem;
+  left: 50%;
+  z-index: 20;
+  transform: translate(-50%, -180%);
+  padding: 0.625rem 1rem;
+  border-radius: 999px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  text-decoration: none;
+  color: var(--fg);
+  background: rgba(10, 10, 13, 0.92);
+  border: 1px solid var(--glass-rim-strong);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  transition: transform 0.2s var(--ease);
+}
+
+.skip-link:focus-visible {
+  transform: translate(-50%, 0);
+}
+
+/* ── Legibility over the cloud ──────────────────────────────────────────── */
+
+/*
+ * The cloud is bright enough in places to take body copy below AA. Dimming the
+ * whole canvas far enough to fix that would throw away the thing the page is
+ * built on, so the content-heavy text columns carry a soft well of ground:
+ * a wide radial with no hard edge, sized to the measure rather than to a box.
+ * The hero deliberately keeps the cloud unobscured.
+ */
+.movement .shell,
+.prose .shell {
+  position: relative;
+  isolation: isolate;
+}
+
+.movement:not(.hero) .shell::before,
+.prose .shell::before {
+  content: '';
+  position: absolute;
+  /* Bled well past the column so the gradient's tail finishes inside the box;
+     clipped at the shell's own edge it showed as a faint vertical seam. */
+  top: -6rem;
+  bottom: -6rem;
+  /* Keep the background well full-viewport without letting its decorative
+     bleed expand the document's scrollable width on a phone. */
+  left: 50%;
+  width: 100vw;
+  transform: translateX(-50%);
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 58% 54% at 32% 50%,
+    rgba(10, 10, 13, 0.72) 0%,
+    rgba(10, 10, 13, 0.5) 40%,
+    rgba(10, 10, 13, 0) 76%
+  );
+}
+
+.close .shell::before {
+  background: radial-gradient(
+    ellipse 60% 60% at 50% 50%,
+    rgba(10, 10, 13, 0.68) 0%,
+    rgba(10, 10, 13, 0.46) 42%,
+    rgba(10, 10, 13, 0) 78%
+  );
+}
+
+@media (max-width: 34rem) {
+  .movement:not(.hero) .shell::before,
+  .close .shell::before,
+  .prose .shell::before {
+    top: -4rem;
+    bottom: -4rem;
+    background: radial-gradient(
+      ellipse 78% 56% at 50% 50%,
+      rgba(10, 10, 13, 0.78) 0%,
+      rgba(10, 10, 13, 0.58) 46%,
+      rgba(10, 10, 13, 0) 82%
+    );
+  }
+}
+
+/*
+ * The hero keeps the cloud unobscured on a wide viewport, where the type sits
+ * beside the bright core rather than on it. As the viewport narrows the two
+ * stack and the copy lands on the core, so the well returns — fading in over
+ * the range rather than switching on at a breakpoint. The well keeps one shape
+ * throughout; only its opacity moves.
+ *
+ * --fade is that 0-to-1 ramp. It has to be built as a length, because vw
+ * cannot be interpolated against a bare number, so tan(atan2()) divides it by
+ * its own upper bound to strip the unit back off.
+ */
+.hero .shell::before {
+  --fade: clamp(0rem, (52rem - 100vw) / 22, 1rem);
+
+  content: '';
+  position: absolute;
+  top: -4rem;
+  bottom: -4rem;
+  left: 50%;
+  width: 100vw;
+  transform: translateX(-50%);
+  z-index: -1;
+  pointer-events: none;
+  opacity: tan(atan2(var(--fade), 1rem));
+  /* Offset up so the well sits under the copy and leaves the cloud open below
+     the button. */
+  background: radial-gradient(
+    ellipse 82% 52% at 50% 44%,
+    rgba(10, 10, 13, 0.74) 0%,
+    rgba(10, 10, 13, 0.52) 48%,
+    rgba(10, 10, 13, 0) 84%
+  );
+}
+
+/*
+ * The prose pages have no StageDriver, so nothing would otherwise pull the
+ * cloud back behind a full page of body text.
+ */
+html:has(main.prose) {
+  --orb-dim: 0.72;
+}
+
+/* ── The record circle ──────────────────────────────────────────────────── */
+
+/*
+ * The app's recording state, at the size it has in the product. The halo has no
+ * offset because this is not a shadow — the circle is a light source, and it
+ * throws light evenly.
+ */
+.rec-circle {
+  display: block;
+  width: clamp(52px, 6.2vw, 76px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  margin-bottom: 2.25rem;
+  /* Color.red.opacity(0.85) inside a red-tinted rim, as ContentView draws it. */
+  background: rgba(229, 72, 77, 0.85);
+  border: 1px solid rgba(229, 72, 77, 0.45);
+  box-shadow: 0 0 72px 8px rgba(229, 72, 77, 0.3);
+}

@@ -1,0 +1,227 @@
+name: Teika
+# Without this mapping XcodeGen cannot tell which configs are debug and which are
+# release, so it skips both setting presets entirely: `#if DEBUG` is never defined,
+# Release never gets `-O`/wholemodule, and Debug never gets ONLY_ACTIVE_ARCH.
+configs:
+  Debug: debug
+  Release: release
+options:
+  bundleIdPrefix: com.gustavscirulis
+  deploymentTarget:
+    iOS: "26.5"
+    watchOS: "26.0"
+  createIntermediateGroups: true
+packages:
+  FluidAudio:
+    url: https://github.com/FluidInference/FluidAudio.git
+    minorVersion: 0.15.5
+  DialKit:
+    url: https://github.com/mikelikesdesign/dialkit-ios.git
+    from: 0.3.0
+settings:
+  base:
+    MARKETING_VERSION: "1.0.1"
+    CURRENT_PROJECT_VERSION: 3
+    CODE_SIGN_STYLE: Automatic
+targets:
+  Teika:
+    type: application
+    platform: iOS
+    deploymentTarget: "26.5"
+    sources:
+      - path: teika
+        excludes:
+          - Info.plist
+          - PrivacyInfo.xcprivacy
+          - LICENSES.txt
+      - path: Shared
+      # Declared explicitly so the manifest is guaranteed into Copy Bundle
+      # Resources rather than depending on extension inference.
+      - path: teika/PrivacyInfo.xcprivacy
+        buildPhase: resources
+      # Apache-2.0 §4(a) and fastcluster's BSD binary-redistribution clause both
+      # require the licence text to ship with the binary, so this has to be a
+      # bundled resource rather than a repo-only file.
+      - path: teika/LICENSES.txt
+        buildPhase: resources
+    dependencies:
+      - package: FluidAudio
+        product: FluidAudio
+      - package: DialKit
+        product: DialKit
+      - target: TeikaWidget
+      # Xcode's own "Embed Watch Content" phase is a copy into the products
+      # directory at $(CONTENTS_FOLDER_PATH)/Watch. Spelled out rather than left to
+      # inference, because a watch app that lands in Frameworks or PlugIns installs
+      # without complaint and then never appears on the watch.
+      - target: TeikaWatch
+        embed: true
+        copy:
+          destination: productsDirectory
+          subpath: "$(CONTENTS_FOLDER_PATH)/Watch"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.gustavscirulis.teika
+        PRODUCT_NAME: $(TARGET_NAME)
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: teika/Info.plist
+        ENABLE_PREVIEWS: YES
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SWIFT_VERSION: "5.0"
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+        SWIFT_APPROACHABLE_CONCURRENCY: YES
+        SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY: YES
+        SWIFT_EMIT_LOC_STRINGS: YES
+        EXTRACT_APP_INTENTS_METADATA: YES
+        STRING_CATALOG_GENERATE_SYMBOLS: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: "Teika uses the microphone to transcribe your speech into text on your device."
+        INFOPLIST_KEY_NSMotionUsageDescription: "Teika uses device motion to tilt the voice orb. Motion data is never stored or shared."
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+  TeikaWidget:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "26.5"
+    sources:
+      - path: TeikaWidget
+        excludes:
+          - Info.plist
+      # The widget only shares its deep-link bridge. Including all of Shared would
+      # compile the watch orb renderer here as well, pulling an iOS debug dependency
+      # into this extension for no reason.
+      - path: Shared/RecordingLauncher.swift
+      - path: Shared/StartRecordingOpenIntent.swift
+      - path: Shared/TeikaURL.swift
+    dependencies:
+      - sdk: WidgetKit.framework
+      - sdk: AppIntents.framework
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.gustavscirulis.teika.widget
+        PRODUCT_NAME: $(TARGET_NAME)
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: TeikaWidget/Info.plist
+        INFOPLIST_KEY_CFBundleDisplayName: Teika
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SWIFT_VERSION: "5.0"
+  TeikaWatchWidget:
+    type: app-extension
+    platform: watchOS
+    deploymentTarget: "26.0"
+    sources:
+      - path: TeikaWatchWidget
+        excludes:
+          - Info.plist
+      # Same two files the phone's widget takes, and for the same reason: the control
+      # only needs the intent that opens the app, not the orb or the clip contract.
+      - path: Shared/RecordingLauncher.swift
+      - path: Shared/StartRecordingOpenIntent.swift
+    dependencies:
+      - sdk: WidgetKit.framework
+      - sdk: AppIntents.framework
+    settings:
+      base:
+        # Must be prefixed by the watch app's identifier, the same rule that applies to
+        # the watch app against the phone's.
+        PRODUCT_BUNDLE_IDENTIFIER: com.gustavscirulis.teika.watchkitapp.widget
+        PRODUCT_NAME: $(TARGET_NAME)
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: TeikaWatchWidget/Info.plist
+        INFOPLIST_KEY_CFBundleDisplayName: Teika
+        TARGETED_DEVICE_FAMILY: "4"
+        SWIFT_VERSION: "5.0"
+  TeikaWatch:
+    type: application
+    platform: watchOS
+    # The phone requires iOS 26.5, but someone on iOS 26.5 can easily still be on
+    # watchOS 26.0, and nothing here needs 26.5.
+    deploymentTarget: "26.0"
+    sources:
+      - path: TeikaWatch
+        excludes:
+          - Info.plist
+          - PrivacyInfo.xcprivacy
+      - path: TeikaWatch/PrivacyInfo.xcprivacy
+        buildPhase: resources
+      # Only the platform-neutral watch bridge and orb simulation belong in the watch
+      # target. The other shared files support the iOS widget's deep-link workflow.
+      - path: Shared/AudioLevelMeter.swift
+      - path: Shared/ClipTransfer.swift
+      - path: Shared/OrbConfig.swift
+      - path: Shared/OrbSimulation.swift
+      # The Control Center control is an `OpenIntent`, which the system only treats as
+      # an app launcher when the intent type is built into the app as well as the
+      # extension — the app's copy is the one that actually runs.
+      - path: Shared/RecordingLauncher.swift
+      - path: Shared/StartRecordingOpenIntent.swift
+      # One Icon Composer bundle serves both platforms: its icon.json already
+      # declares `"supported-platforms": {"circles": ["watchOS"]}`.
+      - path: teika/AppIcon.icon
+    dependencies:
+      - sdk: AppIntents.framework
+      - target: TeikaWatchWidget
+    settings:
+      base:
+        # Must be prefixed by the phone app's identifier or the watch app will not
+        # install.
+        PRODUCT_BUNDLE_IDENTIFIER: com.gustavscirulis.teika.watchkitapp
+        PRODUCT_NAME: $(TARGET_NAME)
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: TeikaWatch/Info.plist
+        TARGETED_DEVICE_FAMILY: "4"
+        SWIFT_VERSION: "5.0"
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+        SWIFT_APPROACHABLE_CONCURRENCY: YES
+        SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY: YES
+        SWIFT_EMIT_LOC_STRINGS: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        INFOPLIST_KEY_WKApplication: YES
+        INFOPLIST_KEY_WKCompanionAppBundleIdentifier: com.gustavscirulis.teika
+        INFOPLIST_KEY_CFBundleDisplayName: Teika
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: "Teika uses the microphone to record what you say, then sends it to your iPhone to turn into text."
+        INFOPLIST_KEY_NSMotionUsageDescription: "Teika uses device motion to tilt the voice orb. Motion data is never stored or shared."
+  TeikaUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    deploymentTarget: "26.5"
+    sources:
+      - path: TeikaUITests
+    dependencies:
+      - target: Teika
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.gustavscirulis.teika.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        RUN_MODEL_DOWNLOAD_TEST: NO
+        INFOPLIST_KEY_RUN_MODEL_DOWNLOAD_TEST: "$(RUN_MODEL_DOWNLOAD_TEST)"
+        SWIFT_VERSION: "5.0"
+schemes:
+  Teika:
+    build:
+      targets:
+        Teika: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - TeikaUITests
+    archive:
+      config: Release
+  # A separate scheme so run.sh can build and install straight onto a watch
+  # destination; the Teika scheme pulls the watch app in as a dependency but
+  # installs only the phone app.
+  TeikaWatch:
+    build:
+      targets:
+        TeikaWatch: all
+    run:
+      config: Debug
+    archive:
+      config: Release

@@ -1,0 +1,41 @@
+# Xcode user-specific state
+xcuserdata/
+*.xcuserstate
+*.local.xcconfig
+.xcode.env.local
+
+# Local environment and signing material
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p8
+*.p12
+*.pfx
+*.cer
+*.crt
+*.der
+*.mobileprovision
+*.provisionprofile
+
+# macOS
+.DS_Store
+
+# Conductor workspace collaboration dir
+.context/
+
+# Swift Package Manager
+.build/
+
+# XcodeGen output (generated from project.yml)
+Teika.xcodeproj/
+DerivedData/
+DerivedData-sim/
+
+# xcodebuild output when it is run without -derivedDataPath
+build/
+
+# run.sh remembered destination and target
+.run-last-destination
+.run-last-target

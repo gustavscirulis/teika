@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.gustavscirulis.teika</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>teika</string>
+			</array>
+		</dict>
+	</array>
+	<key>INAlternativeAppNames</key>
+	<array>
+		<dict>
+			<key>INAlternativeAppName</key>
+			<string>Tayka</string>
+		</dict>
+		<dict>
+			<key>INAlternativeAppName</key>
+			<string>Taika</string>
+		</dict>
+		<dict>
+			<key>INAlternativeAppName</key>
+			<string>Teka</string>
+		</dict>
+	</array>
+	<key>UIApplicationShortcutItems</key>
+	<array>
+		<dict>
+			<key>UIApplicationShortcutItemIconSymbolName</key>
+			<string>mic.fill</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>New Recording</string>
+			<key>UIApplicationShortcutItemType</key>
+			<string>com.gustavscirulis.teika.record</string>
+		</dict>
+	</array>
+</dict>
+</plist>

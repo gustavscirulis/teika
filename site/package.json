@@ -1,0 +1,27 @@
+{
+  "name": "teika-site",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Marketing, support and privacy site for Teika.",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "tsc --noEmit"
+  },
+  "license": "GPL-3.0-or-later",
+  "dependencies": {
+    "@vercel/analytics": "^2.0.1",
+    "framer-motion": "^13.0.0",
+    "next": "^16.3.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "typescript": "^7.0.2"
+  }
+}
