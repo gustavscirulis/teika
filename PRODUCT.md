@@ -123,7 +123,8 @@ The landing page's current wording, so future edits change it deliberately:
   running on the device is *why* it works offline, uploads nothing and is free.
   Closes with the one-time 0.5 GB download.
 - **Close** — "Open it and talk."
-- **Install signal** — "Free and open source. View source."
+- **Install signal** — "Free and open source." The words "open source" link to
+  the source.
 
 ## Brand Commitments
 

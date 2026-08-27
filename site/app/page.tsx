@@ -50,10 +50,11 @@ export default function Home() {
           <div className="cta">
             <AppStoreButton />
             <span className="price-label">
-              Free and open source.{' '}
+              Free and{' '}
               <a href={SOURCE_URL} rel="noreferrer noopener" target="_blank">
-                View source
+                open source
               </a>
+              .
             </span>
           </div>
         </div>
@@ -102,10 +103,11 @@ export default function Home() {
           <div className="cta cta-stacked">
             <AppStoreButton />
             <span className="price-label">
-              Free and open source.{' '}
+              Free and{' '}
               <a href={SOURCE_URL} rel="noreferrer noopener" target="_blank">
-                View source
+                open source
               </a>
+              .
             </span>
           </div>
         </div>
