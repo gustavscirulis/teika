@@ -24,6 +24,12 @@ Apple Watch recordings are transferred to the paired iPhone through Apple's
 WatchConnectivity service for local transcription. See the full
 [privacy policy](PRIVACY.md) for details.
 
+## Screenshots
+
+| Record a thought | Review a captured note | Browse all notes |
+| --- | --- | --- |
+| <img src="docs/screenshots/teika-recording.png" width="240" alt="Teika recording screen with the record button"> | <img src="docs/screenshots/teika-thought-copied.png" width="240" alt="Teika displaying a captured note with a copied-to-clipboard confirmation"> | <img src="docs/screenshots/teika-notes.png" width="240" alt="Teika notes library with saved notes grouped by date"> |
+
 ## Installation
 
 [Download Teika from the App Store](https://apps.apple.com/app/id6796609245), or
