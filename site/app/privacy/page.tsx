@@ -12,7 +12,7 @@ export default function Privacy() {
     <main id="main" className="prose">
       <div className="shell">
         <h1>Privacy Policy</h1>
-        <p className="updated">Teika · Last updated 26 August 2026</p>
+        <p className="updated">Teika · Last updated 30 August 2026</p>
 
         <p className="lede">
           Teika processes recordings and notes on your devices. It does not upload your
@@ -25,16 +25,20 @@ export default function Privacy() {
         <p>
           When you record on your iPhone, audio is captured into memory, transcribed on
           the iPhone, and then discarded. It is not written to persistent storage or
-          uploaded.
+          uploaded. If a previously downloaded speech model is still being prepared when
+          you stop, the recording remains in memory until Teika transcribes it, you choose{' '}
+          <strong>Discard Recording</strong>, or the app process ends.
         </p>
         <p>
           Recording on an Apple Watch works differently because the watch cannot run the
-          speech recogniser itself. The recording is written to a temporary file on the
-          watch and transferred through Apple&rsquo;s WatchConnectivity service to your
-          paired iPhone. If processing is interrupted, the iPhone may keep the file until
-          local transcription can resume. Teika deletes the temporary files after
-          processing. Watch recordings are not uploaded and do not leave your paired
-          devices.
+          speech recogniser itself. After you finish recording, the audio is kept in a
+          private outbox on the watch until Apple&rsquo;s WatchConnectivity service confirms
+          its transfer to your paired iPhone. This can happen later if the iPhone is
+          locked, out of range, or unavailable. The iPhone keeps a received recording
+          until local transcription finishes, including while the speech model is being
+          prepared or recovering from a temporary failure. Teika deletes each
+          device&rsquo;s copy when that stage finishes. Watch recordings are not uploaded
+          and do not leave your paired devices.
         </p>
 
         <h2>Your notes</h2>
@@ -128,8 +132,9 @@ export default function Privacy() {
           Your notes are on your iPhone. Swipe a note in the list to delete it, or delete
           the app to remove its notes and downloaded model from that device. Existing
           iCloud or computer backups are controlled separately by you and Apple and may
-          retain notes until the backup is removed or replaced. Temporary Watch
-          recordings are removed after processing as described above.
+          retain notes until the backup is removed or replaced. Queued Watch recordings
+          are removed from the watch after confirmed transfer and from the iPhone after
+          processing, as described above.
         </p>
         <p>
           You can decline the model download and no connection to Hugging Face will be

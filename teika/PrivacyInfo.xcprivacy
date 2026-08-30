@@ -6,7 +6,8 @@
 	<false/>
 	<key>NSPrivacyTrackingDomains</key>
 	<array/>
-	<!-- Recordings, transcripts, and notes stay on the user's devices. After the
+	<!-- Recordings, transcripts, and notes stay on the user's devices. Received Watch
+	     audio may remain on disk until local processing can finish. After the
 	     user explicitly approves setup, Hugging Face receives standard connection
 	     metadata while serving the speech-model files. -->
 	<key>NSPrivacyCollectedDataTypes</key>
@@ -54,8 +55,8 @@
 	<key>NSPrivacyAccessedAPITypes</key>
 	<array>
 		<dict>
-			<!-- DialKit persists its debug-panel position in UserDefaults. The panel
-			     is DEBUG-only, but the package still links into release builds. -->
+			<!-- Teika caches whether model setup has completed so the paired Watch can
+			     accept deferred clips. DialKit also persists its DEBUG panel position. -->
 			<key>NSPrivacyAccessedAPIType</key>
 			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
 			<key>NSPrivacyAccessedAPITypeReasons</key>

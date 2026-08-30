@@ -25,9 +25,6 @@ struct ContentView: View {
     @State private var activeTranscript: ActiveTranscript?
     @State private var armedStart: Date?
     @State private var launchNotice: String?
-    /// Set only after someone taps the disabled-looking record control while the speech
-    /// model is loading. The control itself stays disabled so its glass never reacts.
-    @State private var recordTapNotice: String?
     /// Identity for the transcript reveal, bumped once per transcription. Deliberately
     /// not the note's `persistentModelID`: SwiftData hands a freshly inserted model a
     /// temporary identifier and swaps it for a permanent one when the context autosaves,
@@ -168,19 +165,20 @@ struct ContentView: View {
         .onChange(of: launcher.pending) {
             drainLaunchRequest()
         }
-        .onChange(of: transcriber.state) { _, state in
+        .onChange(of: transcriber.modelState) { _, state in
             switch state {
             case .ready:
-                withAnimation { recordTapNotice = nil }
                 fireArmedStart()
             case .failed:
-                withAnimation { recordTapNotice = nil }
                 armedStart = nil
-            case .needsDownload, .recording, .transcribing:
-                withAnimation { recordTapNotice = nil }
-            case .preparing, .loadingModel:
+            case .needsDownload:
+                break
+            case .cachedPreparation, .initialDownload:
                 break
             }
+        }
+        .onChange(of: transcriber.activityState) { _, activity in
+            if activity == .idle { presentWatchNote() }
         }
         #if DEBUG
         .onChange(of: showsScreenshotRecording) { _, isActive in
@@ -312,12 +310,12 @@ struct ContentView: View {
         // shows it; what this is really excluding is the app being off screen, where the
         // reveal would play to nobody.
         guard scenePhase != .background else { return }
-        switch transcriber.state {
+        switch transcriber.activityState {
         // Mid-recording it would appear for a second and then be replaced by whatever
         // the person is actually saying. It keeps until the app next comes forward.
-        case .recording, .transcribing:
+        case .recording, .waitingForModel, .transcribing:
             return
-        case .needsDownload, .preparing, .loadingModel, .ready, .failed:
+        case .idle:
             break
         }
         guard let text = watchInbox.take() else { return }
@@ -346,7 +344,7 @@ struct ContentView: View {
                 .scrollContentBackground(.hidden)
             } else if showsAppStoreScreenshots {
                 Color.clear
-            } else if case .needsDownload = transcriber.state {
+            } else if case .needsDownload = transcriber.modelState {
                 // Lives here rather than in `statusLine` so it centres in the open space
                 // above the button instead of stacking up against it.
                 downloadIntro
@@ -405,31 +403,51 @@ struct ContentView: View {
             if showsAppStoreScreenshots {
                 Color.clear
             } else {
-                switch transcriber.state {
-                case .failed(let message):
+                if transcriber.activityState == .recording,
+                   case .failed = transcriber.modelState
+                {
+                    Text("Keep recording. Transcription will wait for the speech model.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                } else if transcriber.activityState == .waitingForModel,
+                   case .failed = transcriber.modelState
+                {
+                    VStack(spacing: 8) {
+                        Text("Couldn't prepare the speech model. Your recording is still in memory.")
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                            .multilineTextAlignment(.center)
+                        HStack(spacing: 16) {
+                            Button("Try Again") {
+                                Task { await transcriber.retryModelLoad() }
+                            }
+                            Button("Discard Recording", role: .destructive) {
+                                transcriber.discardPendingRecording()
+                            }
+                        }
+                        .font(.footnote)
+                    }
+                } else if case .failed(let message) = transcriber.modelState {
                     VStack(spacing: 8) {
                         Text(message)
                             .font(.footnote)
                             .foregroundStyle(.red)
                             .multilineTextAlignment(.center)
-                        Button("Try again") {
-                            Task { await transcriber.loadModel() }
+                        Button("Try Again") {
+                            Task { await transcriber.retryModelLoad() }
                         }
                         .font(.footnote)
                     }
-                default:
-                    if let recordTapNotice, isModelLoading {
-                        Text(recordTapNotice)
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                            .transition(.opacity)
-                    } else if armedStart != nil {
+                } else {
+                    if armedStart != nil {
                         loadingLabel("Starting recording…", value: 1)
                     } else if let fraction = downloadProgress {
                         loadingLabel(
                             "Downloading model · \(Int(fraction * 100))%", value: fraction)
-                    } else if showsPreparingLabel {
+                    } else if transcriber.activityState == .waitingForModel {
+                        loadingLabel("Preparing transcription…", value: 1)
+                    } else if showsModelPreparationLabel {
                         loadingLabel("Preparing model…", value: 1)
                     } else if let notice = transcriber.notice {
                         VStack(spacing: 8) {
@@ -481,7 +499,7 @@ struct ContentView: View {
 
     @ViewBuilder
     private var livePrimaryButton: some View {
-        if case .needsDownload = transcriber.state {
+        if case .needsDownload = transcriber.modelState {
             downloadButton
         } else {
             recordButton
@@ -564,102 +582,87 @@ struct ContentView: View {
             }
             .animation(.easeInOut(duration: 0.2), value: isRecording)
             .animation(.easeInOut(duration: 0.3), value: showsActivity)
-
-            if isModelLoading {
-                // This sibling catches the attempted tap without re-enabling the visual
-                // button, so Liquid Glass has no pressed or morphing response.
-                Circle()
-                    .fill(.clear)
-                    .frame(width: 84, height: 84)
-                    .contentShape(Circle())
-                    .onTapGesture { showRecordTapNotice() }
-                    .accessibilityHidden(true)
-            }
         }
-    }
-
-    private func showRecordTapNotice() {
-        withAnimation { recordTapNotice = "Still loading the speech model…" }
     }
 
     private func handleRecordButtonTap() {
-        switch transcriber.state {
-        case .ready:
+        switch transcriber.activityState {
+        case .idle:
+            guard transcriber.canStartRecording else { return }
             beginFreshRecording()
-        case .recording, .transcribing:
+        case .recording, .waitingForModel, .transcribing:
             // During transcription the same control is the documented escape hatch:
             // its spinner disappears immediately when cancellation succeeds.
             transcriber.toggleRecording()
-        case .needsDownload, .preparing, .loadingModel, .failed:
-            // `needsDownload` replaces this control with the download button, while a
-            // load or failure disables it.
-            break
-        }
-    }
-
-    private var isModelLoading: Bool {
-        #if DEBUG
-        if debugDial.values.simulateLoading { return true }
-        #endif
-        return switch transcriber.state {
-        case .preparing, .loadingModel: true
-        case .needsDownload, .ready, .recording, .transcribing, .failed: false
         }
     }
 
     private var recordButtonIsDisabled: Bool {
-        if isModelLoading { return true }
-        if case .failed = transcriber.state { return true }
-        return false
+        switch transcriber.activityState {
+        case .recording, .waitingForModel, .transcribing:
+            return false
+        case .idle:
+            return !transcriber.canStartRecording
+        }
     }
 
     private var recordButtonAccessibilityLabel: String {
-        switch transcriber.state {
+        switch transcriber.activityState {
         case .recording: "Stop recording"
+        case .waitingForModel: "Discard recording"
         case .transcribing: "Cancel transcription"
-        case .needsDownload, .preparing, .loadingModel, .ready, .failed: "Start recording"
+        case .idle: "Start recording"
         }
     }
 
     private var recordButtonAccessibilityHint: String {
-        switch transcriber.state {
-        case .preparing: "The speech model is still loading."
-        case .loadingModel: "The speech model is still loading."
+        return switch transcriber.activityState {
+        case .waitingForModel: "Discards the recording retained while the speech model loads."
         case .transcribing: "Cancels the transcription in progress."
-        case .failed: "Use Try again above to reload the speech model."
-        case .needsDownload, .ready, .recording: ""
+        case .idle:
+            if case .failed = transcriber.modelState {
+                "Use Try Again above to reload the speech model."
+            } else {
+                ""
+            }
+        case .recording: ""
         }
     }
 
     // The ring is decorative, so the button itself has to carry load state.
     private var accessibilityStatus: String {
-        switch transcriber.state {
-        case .loadingModel(let fraction): "Downloading model, \(Int(fraction * 100)) percent"
-        case .preparing: "Preparing model"
+        return switch transcriber.activityState {
+        case .recording: "Recording"
+        case .waitingForModel: "Recording retained. Preparing transcription"
         case .transcribing: "Transcribing"
-        case .failed: "Speech model unavailable"
-        case .needsDownload: "Speech model not downloaded yet"
-        case .ready, .recording: ""
+        case .idle:
+            switch transcriber.modelState {
+            case .initialDownload(let fraction):
+                fraction.map { "Downloading model, \(Int($0 * 100)) percent" }
+                    ?? "Preparing model"
+            case .cachedPreparation: ""
+            case .failed: "Speech model unavailable"
+            case .needsDownload: "Speech model not downloaded yet"
+            case .ready: ""
+            }
         }
     }
 
     private var isRecording: Bool {
         if showsAppStoreScreenshots { return showsScreenshotRecording }
-        if case .recording = transcriber.state { return true }
-        return false
+        return transcriber.activityState == .recording
     }
 
-    /// How far the orb has materialised, 0 = `OrbConfig.quiet`. `.preparing` branches on
-    /// `didDownload` because it means two different things: the compile that follows a
-    /// real download (which must not dip below the ramp it continues), and a cached
-    /// launch (which starts from a floor so it settles rather than builds).
+    /// How far the orb has materialised, 0 = `OrbConfig.quiet`. Active capture and
+    /// processing remain fully present regardless of the independent model state.
     private var orbPresence: Double {
         if showsAppStoreScreenshots { return 1 }
-        return switch transcriber.state {
+        if transcriber.activityState != .idle { return 1 }
+        return switch transcriber.modelState {
         case .needsDownload: 0
-        case .loadingModel(let fraction): fraction * 0.9
-        case .preparing: transcriber.didDownload ? 0.9 : 0.7
-        case .ready, .recording, .transcribing: 1
+        case .initialDownload(let fraction): (fraction ?? 1) * 0.9
+        case .cachedPreparation: 0.7
+        case .ready: 1
         case .failed: 0
         }
     }
@@ -671,9 +674,14 @@ struct ContentView: View {
         #if DEBUG
         if debugDial.values.simulateLoading { return true }
         #endif
-        return switch transcriber.state {
-        case .preparing, .loadingModel, .transcribing: true
-        case .needsDownload, .ready, .recording, .failed: false
+        if transcriber.activityState == .waitingForModel
+            || transcriber.activityState == .transcribing
+        {
+            return true
+        }
+        return switch transcriber.modelState {
+        case .initialDownload: true
+        case .needsDownload, .cachedPreparation, .ready, .failed: false
         }
     }
 
@@ -683,15 +691,15 @@ struct ContentView: View {
             return debugDial.values.simulateCompile ? nil : debugDial.values.fakeProgress
         }
         #endif
-        if case .loadingModel(let fraction) = transcriber.state { return fraction }
+        if case .initialDownload(let fraction) = transcriber.modelState { return fraction }
         return nil
     }
 
-    private var showsPreparingLabel: Bool {
+    private var showsModelPreparationLabel: Bool {
         #if DEBUG
         if debugDial.values.simulateLoading { return debugDial.values.simulateCompile }
         #endif
-        if case .preparing = transcriber.state { return transcriber.didDownload }
+        if case .initialDownload(nil) = transcriber.modelState { return true }
         return false
     }
 
@@ -701,14 +709,14 @@ struct ContentView: View {
         // have been left sitting on a note from the last time it was used. Unwind to
         // the orb first so the recording that follows is the thing on screen.
         path.removeAll()
-        switch transcriber.state {
-        case .ready:
+        switch transcriber.modelState {
+        case .ready, .cachedPreparation:
             beginFreshRecording()
-        case .preparing, .loadingModel:
+        case .initialDownload:
             armedStart = request.madeAt
         case .needsDownload:
             launchNotice = "Download the speech model first — then Siri, the widget and Shortcuts can start a recording."
-        case .recording, .transcribing, .failed:
+        case .failed:
             break
         }
     }

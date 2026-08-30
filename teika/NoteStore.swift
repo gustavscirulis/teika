@@ -10,10 +10,16 @@ import SwiftData
 /// here with an explicit `save()`.
 @MainActor
 final class NoteStore {
+    struct WatchInsert {
+        let note: Note
+        let inserted: Bool
+    }
+
     let container: ModelContainer
 
-    init() throws {
-        container = try ModelContainer(for: Note.self)
+    init(inMemory: Bool = false) throws {
+        let configuration = ModelConfiguration(isStoredInMemoryOnly: inMemory)
+        container = try ModelContainer(for: Note.self, configurations: configuration)
     }
 
     @discardableResult
@@ -22,5 +28,23 @@ final class NoteStore {
         container.mainContext.insert(note)
         try container.mainContext.save()
         return note
+    }
+
+    func note(forWatchClipID clipID: String) throws -> Note? {
+        let descriptor = FetchDescriptor<Note>(
+            predicate: #Predicate { note in note.watchClipID == clipID })
+        return try container.mainContext.fetch(descriptor).first
+    }
+
+    /// Returns the existing note when WatchConnectivity retries a clip that was already
+    /// saved. Only the first delivery changes the library.
+    func addWatchNote(text: String, createdAt: Date, clipID: String) throws -> WatchInsert {
+        if let note = try note(forWatchClipID: clipID) {
+            return WatchInsert(note: note, inserted: false)
+        }
+        let note = Note(text: text, createdAt: createdAt, watchClipID: clipID)
+        container.mainContext.insert(note)
+        try container.mainContext.save()
+        return WatchInsert(note: note, inserted: true)
     }
 }

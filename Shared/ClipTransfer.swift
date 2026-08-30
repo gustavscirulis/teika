@@ -6,7 +6,7 @@ import Foundation
 /// and reports back. Nothing here knows about WatchConnectivity — these are just the
 /// keys and payloads that travel over it, kept in one place so the two sides cannot
 /// disagree about a spelling.
-enum ClipTransfer {
+nonisolated enum ClipTransfer {
     /// Keys for `transferFile` metadata and `updateApplicationContext`.
     enum Keys {
         /// Ties a clip to its result, so a late or duplicated reply can be ignored.
@@ -15,7 +15,8 @@ enum ClipTransfer {
         /// When the user actually spoke, as `timeIntervalSince1970`. Used for the
         /// note's `createdAt` so a clip that transfers late still sorts correctly.
         static let recordedAt = "recordedAt"
-        /// Application context: whether the phone can transcribe right now.
+        /// Application context: whether phone setup has completed and deferred clips
+        /// are accepted. It does not mean the model is currently resident in memory.
         static let modelReady = "modelReady"
         /// Message payload key carrying an encoded `ClipResult`.
         static let result = "result"
@@ -30,9 +31,12 @@ enum ClipTransfer {
 }
 
 /// What the phone reports back once it has dealt with a clip.
-struct ClipResult: Codable, Equatable {
+nonisolated struct ClipResult: Codable, Equatable {
     enum Outcome: String, Codable {
         case saved
+        /// The phone has safely retained the file and will process it when model setup
+        /// or cached preparation recovers.
+        case deferred
         /// The phone has not downloaded the speech model yet. The watch cannot fix
         /// this — the download is consent-gated on the phone by design.
         case modelNotDownloaded

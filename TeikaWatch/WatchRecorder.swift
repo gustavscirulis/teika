@@ -14,6 +14,7 @@ final class WatchRecorder {
     struct Recording {
         let url: URL
         let duration: TimeInterval
+        let recordedAt: Date
     }
 
     /// AAC rather than PCM, and this is the number that decides how the feature feels.
@@ -38,6 +39,7 @@ final class WatchRecorder {
     private(set) var isRecording = false
 
     private var recorder: AVAudioRecorder?
+    private var recordingStartedAt: Date?
     private var meterTimer: Timer?
 
     var permissionDenied: Bool {
@@ -67,6 +69,7 @@ final class WatchRecorder {
         guard recorder.record() else { throw RecorderError.couldNotStart }
 
         self.recorder = recorder
+        recordingStartedAt = .now
         isRecording = true
         startMetering()
     }
@@ -77,6 +80,7 @@ final class WatchRecorder {
         guard let recorder else { return nil }
         let duration = recorder.currentTime
         let url = recorder.url
+        let recordedAt = recordingStartedAt ?? .now
         recorder.stop()
         teardown()
 
@@ -84,7 +88,7 @@ final class WatchRecorder {
             try? FileManager.default.removeItem(at: url)
             return nil
         }
-        return Recording(url: url, duration: duration)
+        return Recording(url: url, duration: duration, recordedAt: recordedAt)
     }
 
     func cancel() {
@@ -112,6 +116,7 @@ final class WatchRecorder {
         meterTimer?.invalidate()
         meterTimer = nil
         recorder = nil
+        recordingStartedAt = nil
         isRecording = false
         levelMeter.reset()
         try? AVAudioSession.sharedInstance().setActive(false)
@@ -123,7 +128,7 @@ final class WatchRecorder {
         meterTimer?.invalidate()
         meterTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 30.0, repeats: true) {
             [weak self] _ in
-            Task { @MainActor in self?.sampleLevel() }
+            MainActor.assumeIsolated { self?.sampleLevel() }
         }
     }
 

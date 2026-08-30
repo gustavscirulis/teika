@@ -20,8 +20,9 @@ transcripts or notes, and it has no account, subscription, ads or in-app
 analytics. After you approve a one-time model download of about 0.5 GB from
 Hugging Face, transcription works offline.
 
-Apple Watch recordings are transferred to the paired iPhone through Apple's
-WatchConnectivity service for local transcription. See the full
+After setup, Apple Watch recordings can be queued while the iPhone is unavailable
+and are transferred through Apple's WatchConnectivity service for local
+transcription when the connection returns. See the full
 [privacy policy](PRIVACY.md) for details.
 
 ## Installation
@@ -57,6 +58,18 @@ your Apple Developer Team ID locally:
 ```sh
 TEIKA_DEVELOPMENT_TEAM=YOUR_TEAM_ID ./run.sh app "Your iPhone"
 ```
+
+The same script can create a signed App Store archive or archive and upload it
+directly to App Store Connect. Both paths are also available from the picker
+shown by `./run.sh`:
+
+```sh
+TEIKA_DEVELOPMENT_TEAM=YOUR_TEAM_ID ./run.sh archive
+TEIKA_DEVELOPMENT_TEAM=YOUR_TEAM_ID ./run.sh upload
+```
+
+The upload path uses the Apple Developer account signed into Xcode and preserves
+the version and build number declared in `project.yml`.
 
 ### Run the tests
 
