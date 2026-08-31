@@ -70,6 +70,9 @@ struct WatchContentView: View {
             case .sent:
                 toast("Sent to iPhone")
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
+            case .queued:
+                toast("Queued for iPhone")
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
             case .blocked(let reason):
                 message(reason)
             case .notice(let text):

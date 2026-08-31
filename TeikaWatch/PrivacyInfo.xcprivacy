@@ -7,9 +7,9 @@
 	<key>NSPrivacyTrackingDomains</key>
 	<array/>
 	<!-- The watch app transmits no user data off the user's own devices. A recording
-	     is written to a temporary file, handed to the paired iPhone through
-	     WatchConnectivity, and deleted from the watch after handoff. The iPhone may
-	     retain it until local transcription finishes. Nothing is uploaded. -->
+	     remains in a private outbox until WatchConnectivity confirms transfer to the
+	     paired iPhone. The iPhone may retain it until local transcription finishes.
+	     Nothing is uploaded. -->
 	<key>NSPrivacyCollectedDataTypes</key>
 	<array/>
 	<key>NSPrivacyAccessedAPITypes</key>

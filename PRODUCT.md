@@ -78,15 +78,17 @@ Confirmed, from the code:
 
 - One control: a circle to start and stop. Recording state is a red glass circle.
 - Transcription runs on the iPhone. iPhone audio is held in memory and
-  discarded; Watch audio uses temporary files during transfer and interrupted
-  processing. Recordings are never uploaded.
+  discarded; a stopped iPhone recording waits there if its cached model is still
+  loading. Watch audio stays in a persistent device-local outbox until transfer
+  succeeds, then stays on the iPhone until processing finishes. Recordings are
+  never uploaded.
 - Every completed transcription is copied to the system clipboard automatically
   and confirmed with a "Copied to clipboard" pill for 1.5 s.
 - Notes are saved locally via SwiftData, searchable across their full text, listed,
   reopenable, re-copyable, and deletable.
 - A paired Apple Watch app records on the wrist and sends clips to the iPhone for
-  transcription and storage. It needs a reachable iPhone with the speech model
-  ready before recording starts.
+  transcription and storage. After setup has completed once, it can record while
+  the iPhone is unreachable and queue multiple clips for later delivery.
 - A **Start Recording** widget is available on the iPhone Home Screen and Lock
   Screen, plus a Control Center control. The same action is available through
   Shortcuts and Siri; each opens Teika and starts a fresh recording.

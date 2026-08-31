@@ -20,8 +20,8 @@ packages:
     from: 0.3.0
 settings:
   base:
-    MARKETING_VERSION: "1.0.1"
-    CURRENT_PROJECT_VERSION: 3
+    MARKETING_VERSION: "1.0.2"
+    CURRENT_PROJECT_VERSION: 4
     CODE_SIGN_STYLE: Automatic
 targets:
   Teika:
@@ -201,6 +201,32 @@ targets:
         RUN_MODEL_DOWNLOAD_TEST: NO
         INFOPLIST_KEY_RUN_MODEL_DOWNLOAD_TEST: "$(RUN_MODEL_DOWNLOAD_TEST)"
         SWIFT_VERSION: "5.0"
+  TeikaTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "26.5"
+    sources:
+      - path: TeikaTests
+    dependencies:
+      - target: Teika
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.gustavscirulis.teika.tests
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_VERSION: "5.0"
+  TeikaWatchTests:
+    type: bundle.unit-test
+    platform: watchOS
+    deploymentTarget: "26.0"
+    sources:
+      - path: TeikaWatchTests
+    dependencies:
+      - target: TeikaWatch
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.gustavscirulis.teika.watchkitapp.tests
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_VERSION: "5.0"
 schemes:
   Teika:
     build:
@@ -211,6 +237,7 @@ schemes:
     test:
       config: Debug
       targets:
+        - TeikaTests
         - TeikaUITests
     archive:
       config: Release
@@ -223,5 +250,9 @@ schemes:
         TeikaWatch: all
     run:
       config: Debug
+    test:
+      config: Debug
+      targets:
+        - TeikaWatchTests
     archive:
       config: Release

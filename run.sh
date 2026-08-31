@@ -50,6 +50,9 @@ ${BOLD}Usage${RESET}
   ./run.sh                      Pick what to run, then how
   ./run.sh app [destination]    Build and run the iOS app
   ./run.sh site [mode]          Run the website in site/
+  ./run.sh appstore [mode]      Archive or upload to App Store Connect
+  ./run.sh archive              Shorthand for: appstore archive
+  ./run.sh upload               Shorthand for: appstore upload
   ./run.sh <destination>        Shorthand for: app <destination>
   ./run.sh --help               This text
 
@@ -62,11 +65,15 @@ ${BOLD}Site modes${RESET}
   build      Static export into site/out
   preview    Static export, then serve it exactly as it will ship
 
+${BOLD}App Store modes${RESET}
+  archive    Create a signed .xcarchive and open it in Xcode (default)
+  upload     Create a signed archive and upload it to App Store Connect
+
 ${BOLD}Environment${RESET}
   SITE_PORT            dev server port (default 3000)
   SITE_PREVIEW_PORT    preview server port (default 4321)
   TEIKA_DEVELOPMENT_TEAM
-                       Apple Developer Team ID for physical-device signing
+                       Apple Developer Team ID for device and App Store signing
 
 The last target and the last iOS destination are remembered and preselected.
 
@@ -108,8 +115,12 @@ menu_select() {
       key+="$rest"
     fi
     case "$key" in
-      $'\033[A' | k) ((cur > 0)) && ((cur--)) || cur=$((count - 1)) ;;
-      $'\033[B' | j) ((cur < count - 1)) && ((cur++)) || cur=0 ;;
+      $'\033[A' | k)
+        if ((cur > 0)); then cur=$((cur - 1)); else cur=$((count - 1)); fi
+        ;;
+      $'\033[B' | j)
+        if ((cur < count - 1)); then cur=$((cur + 1)); else cur=0; fi
+        ;;
       "" | $'\n' | $'\r') break ;;
       q) printf '\033[?25h'; die "Cancelled." ;;
     esac
@@ -194,6 +205,27 @@ pick_site_mode() {
 }
 
 # ── iOS app ──────────────────────────────────────────────────────────────────
+# Keep project generation in one place: XcodeGen output is ignored and both the
+# run and App Store workflows must always use project.yml as their source of truth.
+generate_project() {
+  step "Generating Teika.xcodeproj from project.yml"
+  # XcodeGen locates its SettingPresets relative to the binary it was *invoked* as, so
+  # running it through a symlink (e.g. /opt/homebrew/bin -> ~/.local) silently drops
+  # every preset: no DEBUG flag, no release optimisation, no ONLY_ACTIVE_ARCH. Resolve
+  # the symlink chain first so the generated project is the same everywhere.
+  local XCODEGEN target
+  XCODEGEN="$(command -v xcodegen)" || die "xcodegen not found."
+  while [[ -L "$XCODEGEN" ]]; do
+    target="$(readlink "$XCODEGEN")"
+    [[ "$target" = /* ]] || target="$(dirname "$XCODEGEN")/$target"
+    XCODEGEN="$target"
+  done
+  "$XCODEGEN" generate >/dev/null
+  grep -q SWIFT_ACTIVE_COMPILATION_CONDITIONS Teika.xcodeproj/project.pbxproj \
+    || die "XcodeGen produced a project without its setting presets (DEBUG would be undefined)."
+  ok "Project generated"
+}
+
 # xcodebuild resolves the entire Swift package graph before it will name a
 # scheme's destinations, and left to itself that means a network fetch of every
 # remote package on every launch: two and a half minutes when GitHub is healthy,
@@ -251,22 +283,7 @@ list_destinations() { # $1 = scheme, $2 = file to fill with -showdestinations ou
 run_app() {
   local query="${1:-}"
 
-  step "Generating Teika.xcodeproj from project.yml"
-  # XcodeGen locates its SettingPresets relative to the binary it was *invoked* as, so
-  # running it through a symlink (e.g. /opt/homebrew/bin -> ~/.local) silently drops
-  # every preset: no DEBUG flag, no release optimisation, no ONLY_ACTIVE_ARCH. Resolve
-  # the symlink chain first so the generated project is the same everywhere.
-  local XCODEGEN target
-  XCODEGEN="$(command -v xcodegen)" || die "xcodegen not found."
-  while [[ -L "$XCODEGEN" ]]; do
-    target="$(readlink "$XCODEGEN")"
-    [[ "$target" = /* ]] || target="$(dirname "$XCODEGEN")/$target"
-    XCODEGEN="$target"
-  done
-  "$XCODEGEN" generate >/dev/null
-  grep -q SWIFT_ACTIVE_COMPILATION_CONDITIONS Teika.xcodeproj/project.pbxproj \
-    || die "XcodeGen produced a project without its setting presets (DEBUG would be undefined)."
-  ok "Project generated"
+  generate_project
 
   step "Discovering destinations"
   local -a NAMES IDS TYPES PLATFORMS SCHEMES BUNDLES PRODUCT_DIRS
@@ -389,17 +406,113 @@ run_app() {
   printf "\n${GREEN}${BOLD}🚀 Launched Teika${RESET}\n\n"
 }
 
+# ── App Store Connect ────────────────────────────────────────────────────────
+pick_app_store_mode() {
+  menu_reset
+  # Keep each option comfortably below narrow terminal widths. `draw_menu`
+  # redraws one row per option, so a wrapped label leaves a stale duplicate.
+  menu_add "${CYAN}archive${RESET}" "Open in Xcode"
+  menu_add "${YELLOW}upload ${RESET}" "Send to App Store"
+  echo
+  menu_select 0
+  [[ "$MENU_PICK" == "1" ]] && APP_STORE_MODE="upload" || APP_STORE_MODE="archive"
+}
+
+run_app_store() {
+  local mode="$1"
+  case "$mode" in
+    archive|upload) ;;
+    *) die "Unknown App Store mode '$mode'. Expected archive or upload." ;;
+  esac
+
+  [[ -n "${TEIKA_DEVELOPMENT_TEAM:-}" ]] ||
+    die "Set TEIKA_DEVELOPMENT_TEAM to your Apple Developer Team ID for App Store signing."
+
+  generate_project
+
+  local release_stamp app_store_dir archive_path export_path export_options
+  local version build_number archive_info
+  release_stamp="$(date +%Y%m%d-%H%M%S)"
+  app_store_dir="$PWD/build/AppStore"
+  archive_path="$app_store_dir/Teika-$release_stamp.xcarchive"
+  export_path="$app_store_dir/upload-$release_stamp"
+  export_options="$app_store_dir/ExportOptions-$release_stamp.plist"
+  mkdir -p "$app_store_dir"
+
+  local -a FORMAT
+  if command -v xcbeautify >/dev/null 2>&1; then
+    FORMAT=(xcbeautify)
+  else
+    FORMAT=(cat)
+  fi
+
+  step "Creating signed App Store archive"
+  xcodebuild \
+    -project Teika.xcodeproj \
+    -scheme Teika \
+    -configuration Release \
+    -destination "generic/platform=iOS" \
+    -archivePath "$archive_path" \
+    -derivedDataPath "$DERIVED_DATA" \
+    "DEVELOPMENT_TEAM=$TEIKA_DEVELOPMENT_TEAM" \
+    -allowProvisioningUpdates \
+    archive \
+    | "${FORMAT[@]}"
+
+  [[ -d "$archive_path" ]] || die "xcodebuild finished without creating $archive_path"
+  archive_info="$archive_path/Info.plist"
+  version="$(plutil -extract ApplicationProperties.CFBundleShortVersionString raw "$archive_info")"
+  build_number="$(plutil -extract ApplicationProperties.CFBundleVersion raw "$archive_info")"
+  ok "Archived Teika $version ($build_number)"
+
+  if [[ "$mode" == "archive" ]]; then
+    printf "\n${BOLD}Archive:${RESET} %s\n" "$archive_path"
+    if [[ -t 1 ]]; then
+      open -a Xcode "$archive_path"
+      ok "Opened archive in Xcode"
+    fi
+    printf "\n"
+    return
+  fi
+
+  step "Preparing App Store Connect upload"
+  plutil -create xml1 "$export_options"
+  plutil -insert method -string app-store-connect "$export_options"
+  plutil -insert destination -string upload "$export_options"
+  plutil -insert signingStyle -string automatic "$export_options"
+  plutil -insert teamID -string "$TEIKA_DEVELOPMENT_TEAM" "$export_options"
+  # Keep project.yml authoritative. Xcode otherwise defaults to silently choosing
+  # another build number during upload, leaving the archive and App Store out of sync.
+  plutil -insert manageAppVersionAndBuildNumber -bool NO "$export_options"
+  plutil -insert uploadSymbols -bool YES "$export_options"
+
+  step "Uploading Teika $version ($build_number) to App Store Connect"
+  xcodebuild \
+    -exportArchive \
+    -archivePath "$archive_path" \
+    -exportPath "$export_path" \
+    -exportOptionsPlist "$export_options" \
+    -allowProvisioningUpdates \
+    | "${FORMAT[@]}"
+  ok "Uploaded Teika $version ($build_number). App Store Connect will process it next."
+  printf "\n${DIM}Archive kept at %s${RESET}\n\n" "$archive_path"
+}
+
 # ── What are we running? ─────────────────────────────────────────────────────
 TARGET=""
 SITE_MODE=""
 DEST_QUERY=""
+APP_STORE_MODE=""
 
 case "${1:-}" in
-  -h|--help|help) usage; exit 0 ;;
-  site)           TARGET="site"; SITE_MODE="${2:-}" ;;
-  app)            TARGET="app";  DEST_QUERY="${2:-}" ;;
-  "")             ;;
-  *)              TARGET="app";  DEST_QUERY="$1" ;;
+  -h|--help|help)  usage; exit 0 ;;
+  site)            TARGET="site";     SITE_MODE="${2:-}" ;;
+  app)             TARGET="app";      DEST_QUERY="${2:-}" ;;
+  appstore)        TARGET="appstore"; APP_STORE_MODE="${2:-}" ;;
+  archive)         TARGET="appstore"; APP_STORE_MODE="archive" ;;
+  upload)          TARGET="appstore"; APP_STORE_MODE="upload" ;;
+  "")              ;;
+  *)               TARGET="app";      DEST_QUERY="$1" ;;
 esac
 
 banner "build & run"
@@ -412,14 +525,23 @@ if [[ -z "$TARGET" ]]; then
 
   if [[ -t 0 ]]; then
     menu_reset
-    app_tag=""; site_tag=""
-    [[ "$last_target" == "app"  ]] && app_tag=" ${DIM}· last used${RESET}"
-    [[ "$last_target" == "site" ]] && site_tag=" ${DIM}· last used${RESET}"
+    app_tag=""; site_tag=""; app_store_tag=""
+    [[ "$last_target" == "app"      ]] && app_tag=" ${DIM}· last used${RESET}"
+    [[ "$last_target" == "site"     ]] && site_tag=" ${DIM}· last used${RESET}"
+    [[ "$last_target" == "appstore" ]] && app_store_tag=" ${DIM}· last used${RESET}"
     menu_add "${CYAN}📱 app   ${RESET}" "iOS app" "$app_tag"
     menu_add "${CYAN}🌐 site  ${RESET}" "Website" "$site_tag"
+    menu_add "${CYAN}📦 store ${RESET}" "App Store" "$app_store_tag"
     echo
-    menu_select "$([[ "$last_target" == "site" ]] && echo 1 || echo 0)"
-    [[ "$MENU_PICK" == "1" ]] && TARGET="site" || TARGET="app"
+    default_target_idx=0
+    [[ "$last_target" == "site" ]] && default_target_idx=1
+    [[ "$last_target" == "appstore" ]] && default_target_idx=2
+    menu_select "$default_target_idx"
+    case "$MENU_PICK" in
+      1) TARGET="site" ;;
+      2) TARGET="appstore" ;;
+      *) TARGET="app" ;;
+    esac
   else
     TARGET="${last_target:-app}"
   fi
@@ -427,15 +549,28 @@ fi
 
 printf "%s" "$TARGET" >"$TARGET_STATE_FILE"
 
-if [[ "$TARGET" == "site" ]]; then
-  if [[ -z "$SITE_MODE" ]]; then
-    if [[ -t 0 ]]; then
-      pick_site_mode
-    else
-      SITE_MODE="dev"
+case "$TARGET" in
+  site)
+    if [[ -z "$SITE_MODE" ]]; then
+      if [[ -t 0 ]]; then
+        pick_site_mode
+      else
+        SITE_MODE="dev"
+      fi
     fi
-  fi
-  run_site "$SITE_MODE"
-else
-  run_app "$DEST_QUERY"
-fi
+    run_site "$SITE_MODE"
+    ;;
+  appstore)
+    if [[ -z "$APP_STORE_MODE" ]]; then
+      if [[ -t 0 ]]; then
+        pick_app_store_mode
+      else
+        APP_STORE_MODE="archive"
+      fi
+    fi
+    run_app_store "$APP_STORE_MODE"
+    ;;
+  *)
+    run_app "$DEST_QUERY"
+    ;;
+esac

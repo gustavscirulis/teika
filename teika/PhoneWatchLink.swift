@@ -4,18 +4,11 @@ import UIKit
 import WatchConnectivity
 import os
 
-/// File-level so the `nonisolated` delegate methods can log without hopping actors. Same
-/// subsystem and category as the watch's, so `Console.app` shows both ends of a handover
-/// as one timeline.
-private let log = Logger(subsystem: "com.gustavscirulis.teika", category: "watch-link")
+nonisolated private let log = Logger(
+    subsystem: "com.gustavscirulis.teika", category: "watch-link")
 
-/// The phone half of the watch companion: receives recordings, transcribes them with
-/// the model that is already loaded here, saves the note, and reports back.
-///
-/// Owned by `TeikaApp` and activated at launch rather than from a view. Most clips
-/// arrive in an app that iOS launched into the background specifically to deliver them,
-/// where no view has ever appeared — a session activated from `ContentView` would miss
-/// them entirely.
+/// Receives persistent Watch transfers, keeps them on disk, and drains them through the
+/// same one-at-a-time inference scheduler as foreground iPhone recordings.
 @MainActor
 final class PhoneWatchLink: NSObject {
     private let transcriber: SpeechTranscriber
@@ -38,44 +31,37 @@ final class PhoneWatchLink: NSObject {
         let session = WCSession.default
         session.delegate = self
         session.activate()
-        // A clip that outlived a previous launch — the background window expired
-        // mid-transcription, or the app was killed. Nothing is lost, it just finishes now.
-        queue.append(contentsOf: PendingClip.restoreAll())
+        queue = PendingClip.restoreAll()
+        observeTranscriber()
         kickDrain()
-        observeReadiness()
+        // A background delivery does not necessarily create a visible SwiftUI task.
+        // Loading an already-approved cache here ensures deferred clips still progress.
+        Task { await transcriber.prepareIfNeeded() }
     }
 
     // MARK: - Readiness
 
-    /// Tells the watch whether recording is worth offering at all. Without this the
-    /// watch would let someone record, transfer, wait, and only then learn that the
-    /// phone never downloaded the model.
-    ///
-    /// `canTranscribeClips` rather than `canRecord`: the question the watch is asking is
-    /// whether the model exists, not whether it happens to be loaded right now. Most
-    /// clips arrive in a background launch where it is not.
     private func pushReadiness() {
         guard WCSession.isSupported() else { return }
         let session = WCSession.default
         guard session.activationState == .activated,
               session.isPaired, session.isWatchAppInstalled
         else { return }
-        let ready = transcriber.canTranscribeClips
-        log.info("pushing readiness \(ready), reachable \(session.isReachable)")
+        let ready = transcriber.canAcceptDeferredClips
+        log.info("pushing setup readiness \(ready), reachable \(session.isReachable)")
         try? session.updateApplicationContext([ClipTransfer.Keys.modelReady: ready])
     }
 
-    /// `withObservationTracking` fires once per change, so it re-arms itself. Used in
-    /// preference to a callback on `SpeechTranscriber` because `onTranscription` has
-    /// already shown that a single closure slot is a landmine with two subscribers.
-    private func observeReadiness() {
+    private func observeTranscriber() {
         withObservationTracking {
-            _ = transcriber.canTranscribeClips
-        } onChange: { [weak self] in
-            Task { @MainActor in
-                guard let self else { return }
+            _ = transcriber.modelState
+            _ = transcriber.canAcceptDeferredClips
+        } onChange: { @Sendable [weak self] in
+            guard let self else { return }
+            Task { @MainActor [self] in
                 self.pushReadiness()
-                self.observeReadiness()
+                self.kickDrain()
+                self.observeTranscriber()
             }
         }
     }
@@ -83,65 +69,115 @@ final class PhoneWatchLink: NSObject {
     // MARK: - Queue
 
     private func enqueue(_ clip: PendingClip) {
+        if let existing = try? store.note(forWatchClipID: clip.clipID) {
+            clip.discard()
+            reply(
+                ClipResult(
+                    clipID: clip.clipID, outcome: .saved, characters: existing.text.count,
+                    message: nil))
+            return
+        }
+        guard !queue.contains(where: { $0.clipID == clip.clipID }) else { return }
         queue.append(clip)
+        queue.sort { $0.recordedAt < $1.recordedAt }
+
+        guard transcriber.modelState == .ready else {
+            reply(
+                ClipResult(
+                    clipID: clip.clipID, outcome: .deferred, characters: 0,
+                    message: "Queued on iPhone"))
+            return
+        }
         kickDrain()
     }
 
-    /// One clip at a time, so two recordings in quick succession cannot both be holding
-    /// half a gigabyte of decoded audio and a decoder state at once.
+    /// Pauses without removing anything whenever the model is not ready. The scheduler
+    /// itself provides local-next priority and serialises all AsrManager access.
     private func kickDrain() {
-        guard drain == nil, !queue.isEmpty else { return }
+        guard drain == nil, !queue.isEmpty, transcriber.modelState == .ready else { return }
         beginBackgroundTask()
         drain = Task { [weak self] in
-            while let self, !self.queue.isEmpty {
-                let clip = self.queue.removeFirst()
-                await self.process(clip)
-            }
             guard let self else { return }
+            var paused = false
+            while !self.queue.isEmpty, self.transcriber.modelState == .ready {
+                let clip = self.queue[0]
+                guard await self.process(clip) else {
+                    paused = true
+                    break
+                }
+                if self.queue.first?.clipID == clip.clipID {
+                    self.queue.removeFirst()
+                } else {
+                    self.queue.removeAll { $0.clipID == clip.clipID }
+                }
+            }
             self.endBackgroundTask()
             self.drain = nil
-            // Clearing the handle and re-kicking has to happen with no suspension in
-            // between: a clip that arrived while the last one was finishing would
-            // otherwise find `drain` still set, decline to start, and then sit in the
-            // queue until the next launch.
-            self.kickDrain()
+            if !paused { self.kickDrain() }
         }
     }
 
-    private func process(_ clip: PendingClip) async {
-        let result: ClipResult
+    /// Returns false only for a dependency failure that should pause the persistent drain.
+    private func process(_ clip: PendingClip) async -> Bool {
+        let samples: [Float]
         do {
-            let samples = try ClipDecoder.decodeMono16k(clip.audioURL)
-            let text = try await transcriber.transcribeClip(samples)
-            try store.add(text: text, createdAt: clip.recordedAt)
-            // Left for the screen to pick up, so a dictation started on the wrist ends
-            // the same way as one started here: transcript on screen, text on the
-            // clipboard. Almost always that happens in some later launch.
-            inbox.deliver(text)
-            result = ClipResult(
-                clipID: clip.clipID, outcome: .saved, characters: text.count, message: nil)
-        } catch SpeechTranscriber.ClipError.modelNotDownloaded {
-            result = ClipResult(
-                clipID: clip.clipID, outcome: .modelNotDownloaded, characters: 0,
-                message: "Finish setup on your iPhone")
-        } catch SpeechTranscriber.ClipError.empty {
-            // Silence, or too short to be speech. The watch already applied its own
-            // duration guard, so this is a clip of nothing rather than a mistake.
-            result = ClipResult(
-                clipID: clip.clipID, outcome: .failed, characters: 0,
-                message: "Didn't catch that. Try again.")
+            samples = try ClipDecoder.decodeMono16k(clip.audioURL)
         } catch {
-            result = ClipResult(
-                clipID: clip.clipID, outcome: .failed, characters: 0,
-                message: "Couldn't transcribe that. Try again.")
+            reply(
+                ClipResult(
+                    clipID: clip.clipID, outcome: .failed, characters: 0,
+                    message: "Couldn't read that recording. Try again."))
+            clip.discard()
+            return true
         }
-        reply(result)
-        clip.discard()
+
+        let text: String
+        do {
+            text = try await transcriber.transcribeClip(samples)
+        } catch SpeechTranscriber.ClipError.modelNotDownloaded,
+                SpeechTranscriber.ClipError.modelUnavailable {
+            reply(
+                ClipResult(
+                    clipID: clip.clipID, outcome: .deferred, characters: 0,
+                    message: "Queued on iPhone"))
+            return false
+        } catch SpeechTranscriber.ClipError.empty {
+            reply(
+                ClipResult(
+                    clipID: clip.clipID, outcome: .failed, characters: 0,
+                    message: "Didn't catch that. Try again."))
+            clip.discard()
+            return true
+        } catch {
+            reply(
+                ClipResult(
+                    clipID: clip.clipID, outcome: .failed, characters: 0,
+                    message: "Couldn't transcribe that. Try again."))
+            clip.discard()
+            return true
+        }
+
+        do {
+            let insertion = try store.addWatchNote(
+                text: text, createdAt: clip.recordedAt, clipID: clip.clipID)
+            if insertion.inserted { inbox.deliver(text) }
+            reply(
+                ClipResult(
+                    clipID: clip.clipID, outcome: .saved, characters: text.count,
+                    message: nil))
+            clip.discard()
+            return true
+        } catch {
+            // A database write can recover after relaunch. The audio remains on disk and
+            // the stable clip ID makes another attempt safe.
+            reply(
+                ClipResult(
+                    clipID: clip.clipID, outcome: .deferred, characters: 0,
+                    message: "Queued on iPhone"))
+            return false
+        }
     }
 
-    /// Both channels, because they fail in opposite conditions: `sendMessage` is
-    /// immediate but only while reachable, `transferUserInfo` survives the link dropping
-    /// mid-transcription. The watch drops whichever arrives second by clip id.
     private func reply(_ result: ClipResult) {
         guard WCSession.isSupported(), let data = result.encoded() else { return }
         let session = WCSession.default
@@ -160,10 +196,9 @@ final class PhoneWatchLink: NSObject {
 
     private func beginBackgroundTask() {
         guard backgroundTask == .invalid else { return }
-        backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "Transcribe watch clip") {
-            [weak self] in
-            // Out of time. The clip stays on disk with its sidecar, so the next launch
-            // picks it up rather than losing what someone said.
+        backgroundTask = UIApplication.shared.beginBackgroundTask(
+            withName: "Transcribe watch clip"
+        ) { [weak self] in
             self?.endBackgroundTask()
         }
     }
@@ -175,8 +210,6 @@ final class PhoneWatchLink: NSObject {
     }
 }
 
-// MARK: - WCSessionDelegate
-
 extension PhoneWatchLink: WCSessionDelegate {
     nonisolated func session(
         _ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState,
@@ -187,8 +220,6 @@ extension PhoneWatchLink: WCSessionDelegate {
 
     nonisolated func sessionDidBecomeInactive(_ session: WCSession) {}
 
-    /// Required on iOS: the session deactivates when the user switches to a different
-    /// watch, and has to be reactivated to talk to the new one.
     nonisolated func sessionDidDeactivate(_ session: WCSession) {
         session.activate()
     }
@@ -201,8 +232,7 @@ extension PhoneWatchLink: WCSessionDelegate {
         Task { @MainActor in self.pushReadiness() }
     }
 
-    /// The inbox URL is deleted the moment this returns, so the file is moved out
-    /// *synchronously* here — before any hop to the main actor.
+    /// The inbox URL disappears when this callback returns, so adoption is synchronous.
     nonisolated func session(_ session: WCSession, didReceive file: WCSessionFile) {
         guard let clip = PendingClip.adopt(file) else {
             log.error("could not adopt an incoming clip; it is lost")
@@ -213,24 +243,27 @@ extension PhoneWatchLink: WCSessionDelegate {
     }
 }
 
-// MARK: - Pending clips
-
-/// A received recording, held on disk until it has been transcribed.
-///
-/// On disk rather than in memory because the background window that delivered it is
-/// about 30 seconds and loading the model can eat most of that. If time runs out the
-/// clip is still here next launch.
-private struct PendingClip: Codable {
+/// A received recording held on disk until local processing has definitively finished.
+nonisolated struct PendingClip: Codable, Equatable {
     let clipID: String
     let recordedAt: Date
 
     static let directory: URL = {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let base = FileManager.default.urls(
+            for: .applicationSupportDirectory, in: .userDomainMask)[0]
         return base.appendingPathComponent("PendingClips", isDirectory: true)
     }()
 
-    var audioURL: URL { Self.directory.appendingPathComponent("\(clipID).m4a") }
-    var sidecarURL: URL { Self.directory.appendingPathComponent("\(clipID).json") }
+    var audioURL: URL { audioURL(in: Self.directory) }
+    var sidecarURL: URL { sidecarURL(in: Self.directory) }
+
+    func audioURL(in directory: URL) -> URL {
+        directory.appendingPathComponent("\(clipID).m4a")
+    }
+
+    func sidecarURL(in directory: URL) -> URL {
+        directory.appendingPathComponent("\(clipID).json")
+    }
 
     static func adopt(_ file: WCSessionFile) -> PendingClip? {
         let metadata = file.metadata ?? [:]
@@ -241,20 +274,31 @@ private struct PendingClip: Codable {
 
         let fm = FileManager.default
         do {
-            try fm.createDirectory(at: directory, withIntermediateDirectories: true)
-            if fm.fileExists(atPath: clip.audioURL.path) {
-                try fm.removeItem(at: clip.audioURL)
+            try prepareDirectory(at: directory)
+            // An outstanding persistent transfer can be retried. Keep the first adopted
+            // copy until its processing outcome is known and discard only the duplicate.
+            if fm.fileExists(atPath: clip.audioURL.path),
+               fm.fileExists(atPath: clip.sidecarURL.path)
+            {
+                try? fm.removeItem(at: file.fileURL)
+                if let data = try? Data(contentsOf: clip.sidecarURL),
+                   let existing = try? JSONDecoder().decode(PendingClip.self, from: data)
+                {
+                    return existing
+                }
+                return clip
             }
             try fm.moveItem(at: file.fileURL, to: clip.audioURL)
-            try JSONEncoder().encode(clip).write(to: clip.sidecarURL)
+            try JSONEncoder().encode(clip).write(to: clip.sidecarURL, options: .atomic)
         } catch {
             return nil
         }
         return clip
     }
 
-    static func restoreAll() -> [PendingClip] {
+    static func restoreAll(in directory: URL = Self.directory) -> [PendingClip] {
         let fm = FileManager.default
+        try? prepareDirectory(at: directory)
         guard let entries = try? fm.contentsOfDirectory(
             at: directory, includingPropertiesForKeys: nil)
         else { return [] }
@@ -263,7 +307,7 @@ private struct PendingClip: Codable {
             .compactMap { url in
                 guard let data = try? Data(contentsOf: url),
                       let clip = try? JSONDecoder().decode(PendingClip.self, from: data),
-                      fm.fileExists(atPath: clip.audioURL.path)
+                      fm.fileExists(atPath: clip.audioURL(in: directory).path)
                 else {
                     try? fm.removeItem(at: url)
                     return nil
@@ -273,9 +317,17 @@ private struct PendingClip: Codable {
             .sorted { $0.recordedAt < $1.recordedAt }
     }
 
-    func discard() {
+    func discard(from directory: URL = Self.directory) {
         let fm = FileManager.default
-        try? fm.removeItem(at: audioURL)
-        try? fm.removeItem(at: sidecarURL)
+        try? fm.removeItem(at: audioURL(in: directory))
+        try? fm.removeItem(at: sidecarURL(in: directory))
+    }
+
+    private static func prepareDirectory(at directory: URL) throws {
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        var directoryURL = directory
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = true
+        try? directoryURL.setResourceValues(values)
     }
 }

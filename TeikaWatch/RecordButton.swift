@@ -52,11 +52,11 @@ struct RecordButton: View {
     private var isRecording: Bool { phase == .recording }
     private var isConnecting: Bool { phase == .connecting }
 
-    /// Only the shut gate disables the button. `.sent` in particular stays live: the
+    /// Only the shut gate disables the button. Confirmations stay live: the
     /// confirmation is a message, not a wait, and the next note can start on top of it.
     private var isEnabled: Bool {
         switch phase {
-        case .idle, .recording, .notice, .sent: true
+        case .idle, .recording, .notice, .sent, .queued: true
         case .connecting, .blocked: false
         }
     }
@@ -68,6 +68,7 @@ struct RecordButton: View {
         case .connecting: "Connecting to iPhone"
         case .blocked(let reason): reason
         case .sent: "Sent to iPhone"
+        case .queued: "Queued for iPhone"
         case .notice(let message): message
         case .idle, .recording: ""
         }

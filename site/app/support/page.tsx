@@ -55,13 +55,18 @@ export default function Support() {
         <h2>How do I use Teika on Apple Watch?</h2>
         <p>
           On your paired Apple Watch, tap the circle, speak, then tap it again. Teika sends
-          the recording to your iPhone, where it is transcribed and saved as a note.
+          the recording to your iPhone, where it is transcribed and saved as a note. If
+          the phone is available, the watch says <strong>Sent to iPhone</strong>. Otherwise
+          it says <strong>Queued for iPhone</strong> and sends it when the connection
+          returns.
         </p>
         <p>
-          Before you record, your iPhone needs to be nearby and its speech model needs to be
-          ready. If your watch says <strong>Finish setup on your iPhone</strong>, open Teika
-          on your phone and complete the model download. When the phone is locked or
-          temporarily out of range, the note can take several minutes to appear.
+          You must complete transcription setup on the iPhone once before the watch can
+          record. After that, the phone does not need to be nearby: the watch keeps each
+          recording until transfer succeeds, and the phone keeps received audio until its
+          speech model is ready to process it. If your watch says{' '}
+          <strong>Finish setup on your iPhone</strong>, open Teika on your phone and
+          complete the model download.
         </p>
 
         <h2>Where are my saved notes?</h2>
@@ -87,8 +92,12 @@ export default function Support() {
         <h2>The download failed</h2>
         <p>
           Every error state in the app is recoverable — you will get a message and a{' '}
-          <strong>Try again</strong> button. If it keeps failing, check that you are not on
-          a captive Wi-Fi network that needs a browser sign-in, and that you have about a
+          <strong>Try Again</strong> button. If you already completed setup, Teika can
+          record while the cached model prepares. When preparation fails after you stop,
+          the recording stays in memory while the app remains open; choose{' '}
+          <strong>Try Again</strong> to process it or <strong>Discard Recording</strong> to
+          remove it. If the first download keeps failing, check that you are not on a
+          captive Wi-Fi network that needs a browser sign-in, and that you have about a
           gigabyte free.
         </p>
 

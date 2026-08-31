@@ -5,10 +5,14 @@ import SwiftData
 final class Note {
     var text: String
     var createdAt: Date
+    /// Present only for notes originating on Apple Watch. The stable transfer ID makes
+    /// a retried persistent delivery idempotent on the phone.
+    var watchClipID: String?
 
-    init(text: String, createdAt: Date = .now) {
+    init(text: String, createdAt: Date = .now, watchClipID: String? = nil) {
         self.text = text
         self.createdAt = createdAt
+        self.watchClipID = watchClipID
     }
 
     var title: String {
