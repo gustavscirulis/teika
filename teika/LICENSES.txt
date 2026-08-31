@@ -1,7 +1,7 @@
 Teika — Open Source Licences
 
 Teika is built with the open source components listed below. Their licence
-texts are reproduced in full further down this file.
+texts, or a canonical link to the applicable licence, are provided below.
 
 Teika itself is Copyright (c) 2026 Gustavs Cirulis.
 
@@ -15,10 +15,11 @@ FluidAudio
 
 Parakeet TDT 0.6B v3
   https://huggingface.co/FluidInference/parakeet-tdt-0.6b-v3-coreml
-  Apache License 2.0
-  The speech recognition model. A Core ML conversion of NVIDIA's
-  nvidia/parakeet-tdt-0.6b-v3. This model is downloaded to your device on
-  first launch and is not included in the app binary.
+  Original model: NVIDIA
+  Creative Commons Attribution 4.0 International (CC BY 4.0)
+  https://creativecommons.org/licenses/by/4.0/
+  Core ML conversion: FluidInference. This model is downloaded to your device
+  on first launch and is not included in the app binary.
 
 fastcluster
   Copyright (c) 2011 Daniel Muellner; changes from 1.1.24 on (c) Google Inc.
@@ -40,7 +41,7 @@ DialKit
 Apache License 2.0
 ==============================================================================
 
-Applies to FluidAudio, Parakeet TDT 0.6B v3, and VBx.
+Applies to FluidAudio and VBx.
 
                                  Apache License
                            Version 2.0, January 2004
