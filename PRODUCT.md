@@ -188,9 +188,9 @@ one exists, the site makes no speed claim in seconds.
   states Teika's behaviour positively ("pausing never ends the recording")
   rather than asserting a number about someone else's product.
 - User counts, ratings, reviews, testimonials, press quotes, awards.
-- A licence claim for the model. The HF card says CC-BY-4.0 while the app's
-  bundled `LICENSES.txt` says Apache-2.0; the discrepancy is unresolved, so the
-  site stays off the topic entirely.
+- A licence claim beyond the attribution in `teika/LICENSES.txt`. The NVIDIA
+  model and FluidInference Core ML conversion declare CC-BY-4.0; legal review is
+  needed before making broader licensing claims about the model on the site.
 
 **Assets:** the app icon at `teika/AppIcon.icon/Assets/icon_512x512@2x.png` —
 the source for the site's favicon, apple-touch icon and Open Graph image;
