@@ -446,9 +446,9 @@ struct ContentView: View {
                         loadingLabel(
                             "Downloading model · \(Int(fraction * 100))%", value: fraction)
                     } else if transcriber.activityState == .waitingForModel {
-                        loadingLabel("Preparing transcription…", value: 1)
+                        loadingLabel("Warming up model…", value: 1)
                     } else if showsModelPreparationLabel {
-                        loadingLabel("Preparing model…", value: 1)
+                        loadingLabel("Warming up model…", value: 1)
                     } else if let notice = transcriber.notice {
                         VStack(spacing: 8) {
                             Text(notice)
@@ -633,13 +633,13 @@ struct ContentView: View {
     private var accessibilityStatus: String {
         return switch transcriber.activityState {
         case .recording: "Recording"
-        case .waitingForModel: "Recording retained. Preparing transcription"
+        case .waitingForModel: "Recording retained. Warming up model"
         case .transcribing: "Transcribing"
         case .idle:
             switch transcriber.modelState {
             case .initialDownload(let fraction):
                 fraction.map { "Downloading model, \(Int($0 * 100)) percent" }
-                    ?? "Preparing model"
+                    ?? "Warming up model"
             case .cachedPreparation: ""
             case .failed: "Speech model unavailable"
             case .needsDownload: "Speech model not downloaded yet"
