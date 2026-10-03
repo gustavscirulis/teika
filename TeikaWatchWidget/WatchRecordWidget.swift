@@ -5,8 +5,11 @@ import WidgetKit
 ///
 /// `.accessoryCorner` is watchOS-only, so it can't be declared on the phone's
 /// `RecordWidget` — the corner slot needs its own widget in this watch extension.
-/// Tapping it runs the same `StartRecordingOpenIntent` as the Control Center
-/// control, which the watch app drains via `RecordingLauncher`.
+///
+/// Complications are tap-to-launch surfaces: the whole tile opens the watch app
+/// with `teika://record`, which the app drains via `RecordingLauncher` (the same
+/// path as the phone widget's `.widgetURL`). In-widget `Button(intent:)`s don't
+/// fire on watch-face complications, so this deliberately uses `.widgetURL`.
 struct WatchRecordWidget: Widget {
     static let kind = "com.gustavscirulis.teika.watchkitapp.widget.record"
 
@@ -40,12 +43,11 @@ private struct WatchRecordTimelineEntry: TimelineEntry {
 
 private struct WatchRecordWidgetView: View {
     var body: some View {
-        Button(intent: StartRecordingOpenIntent()) {
-            Image(systemName: "mic.fill")
-                .font(.title2)
-        }
-        .containerBackground(for: .widget) {
-            Color.clear
-        }
+        Image(systemName: "mic.fill")
+            .font(.title2)
+            .widgetURL(TeikaURL.record)
+            .containerBackground(for: .widget) {
+                Color.clear
+            }
     }
 }
