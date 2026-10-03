@@ -52,6 +52,10 @@ struct WatchContentView: View {
         .onChange(of: scenePhase, initial: true) { _, phase in
             link.setActive(phase == .active)
         }
+        .onOpenURL { url in
+            guard url.scheme == TeikaURL.scheme, url.host == TeikaURL.recordHost else { return }
+            launcher.request()
+        }
         .onChange(of: launcher.pending) {
             drainLaunchRequest()
         }

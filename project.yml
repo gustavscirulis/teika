@@ -122,6 +122,8 @@ targets:
       # only needs the intent that opens the app, not the orb or the clip contract.
       - path: Shared/RecordingLauncher.swift
       - path: Shared/StartRecordingOpenIntent.swift
+      # The corner complication deep-links via teika://record, like the phone widget.
+      - path: Shared/TeikaURL.swift
     dependencies:
       - sdk: WidgetKit.framework
       - sdk: AppIntents.framework
@@ -160,6 +162,9 @@ targets:
       # extension — the app's copy is the one that actually runs.
       - path: Shared/RecordingLauncher.swift
       - path: Shared/StartRecordingOpenIntent.swift
+      # The corner complication deep-links via teika://record, so the app needs the
+      # URL constants to recognize it in onOpenURL.
+      - path: Shared/TeikaURL.swift
       # One Icon Composer bundle serves both platforms: its icon.json already
       # declares `"supported-platforms": {"circles": ["watchOS"]}`.
       - path: teika/AppIcon.icon
