@@ -11,7 +11,8 @@ library.
    widget, Control Center, Shortcuts or Siri.
 2. **Talk until you are done.** Pausing to think does not end the recording.
 3. **Paste it now or find it later.** Each transcription goes to the clipboard
-   and the on-device notes library.
+   and the on-device notes library. Open a saved note to select text or make
+   edits. Changes save automatically.
 
 ## Privacy
 
