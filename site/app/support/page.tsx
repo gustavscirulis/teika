@@ -81,8 +81,8 @@ export default function Support() {
         <p>
           Yes. In the notes library, swipe left on a note and tap <strong>Open</strong>.
           Tap the text to place the cursor, or touch and hold to select words, then type
-          your changes. Edits save automatically. Tap <strong>Done</strong> above the
-          keyboard to hide it, or go back to the library when you are finished.
+          your changes. Edits save automatically. Go back to the library when you are
+          finished.
         </p>
 
         <h2>I tapped the circle and nothing happened</h2>

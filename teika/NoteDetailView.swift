@@ -57,13 +57,6 @@ struct NoteDetailView: View {
                 }
                 .disabled(!canEditNote)
             }
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button("Done") {
-                    isEditing = false
-                    saveChanges()
-                }
-            }
         }
         .onDisappear {
             saveChanges()
