@@ -85,7 +85,7 @@ Confirmed, from the code:
 - Every completed transcription is copied to the system clipboard automatically
   and confirmed with a "Copied to clipboard" pill for 1.5 s.
 - Notes are saved locally via SwiftData, searchable across their full text, listed,
-  reopenable, re-copyable, and deletable.
+  reopenable, editable with automatic saving, re-copyable, and deletable.
 - A paired Apple Watch app records on the wrist and sends clips to the iPhone for
   transcription and storage. After setup has completed once, it can record while
   the iPhone is unreachable and queue multiple clips for later delivery.

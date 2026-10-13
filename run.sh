@@ -299,9 +299,16 @@ run_app() {
     while IFS= read -r line; do
       [[ "$line" == *"{ platform:"* ]] || continue
       [[ "$line" == *placeholder* ]] && continue
+      # Xcode also lists incompatible/ineligible destinations. Including them
+      # duplicates the phone under the Watch scheme, which wins the last-used
+      # lookup and attempts to launch a watch app on the phone.
+      [[ "$line" == *", error:"* ]] && continue
       plat="$(sed -E 's/.*platform:([^,}]*).*/\1/' <<<"$line" | sed -E 's/[[:space:]]+$//')"
+      case "$scheme:$plat" in
+        Teika:iOS|Teika:"iOS Simulator"|TeikaWatch:watchOS|TeikaWatch:"watchOS Simulator") ;;
+        *) continue ;;
+      esac
       case "$plat" in
-        macOS) continue ;;
         *Simulator*) type="sim" ;;
         *) type="device" ;;
       esac
@@ -376,13 +383,14 @@ run_app() {
   fi
 
   step "Building $SCHEME for ${NAMES[$pick]}"
+  # Bash 3.2 treats an empty array as unset under nounset (simulator builds).
   xcodebuild \
     -project Teika.xcodeproj \
     -scheme "$SCHEME" \
     -configuration Debug \
     -destination "id=$DEST_ID" \
     -derivedDataPath "$DERIVED_DATA" \
-    "${SIGNING_ARGS[@]}" \
+    ${SIGNING_ARGS[@]+"${SIGNING_ARGS[@]}"} \
     build \
     | "${FORMAT[@]}"
   ok "Build succeeded"

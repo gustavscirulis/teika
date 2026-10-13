@@ -4,7 +4,7 @@ import { CONTACT_EMAIL, MODEL, SOURCE_URL } from '@/lib/site';
 export const metadata: Metadata = {
   title: 'Support',
   description:
-    'Use Teika on iPhone and Apple Watch, and start recordings from widgets, Control Center, or Shortcuts.',
+    'Help with recording, editing saved notes, Apple Watch, widgets, Control Center, and Shortcuts in Teika.',
 };
 
 /**
@@ -75,6 +75,14 @@ export default function Support() {
           before your first recording, it shows an empty state. Saved notes are grouped by
           date and searchable by their full text. Tap a row to copy it again, or swipe left
           for Open and Delete.
+        </p>
+
+        <h2>Can I edit a saved note?</h2>
+        <p>
+          Yes. In the notes library, swipe left on a note and tap <strong>Open</strong>.
+          Tap the text to place the cursor, or touch and hold to select words, then type
+          your changes. Edits save automatically. Go back to the library when you are
+          finished.
         </p>
 
         <h2>I tapped the circle and nothing happened</h2>

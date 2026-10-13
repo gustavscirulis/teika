@@ -21,7 +21,7 @@ const STEPS = [
   },
   {
     lead: 'Paste it now, or find it later',
-    body: 'Every transcription is copied to your clipboard and kept in a library on your phone.',
+    body: 'Every transcription is copied to your clipboard and saved on your phone. Open a saved note to edit the text; changes save automatically.',
   },
 ];
 
