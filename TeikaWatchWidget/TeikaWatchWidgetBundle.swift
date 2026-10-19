@@ -5,5 +5,6 @@ import WidgetKit
 struct TeikaWatchWidgetBundle: WidgetBundle {
     var body: some Widget {
         WatchRecordControl()
+        WatchRecordWidget()
     }
 }
