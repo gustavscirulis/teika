@@ -86,6 +86,12 @@ Confirmed, from the code:
   and confirmed with a "Copied to clipboard" pill for 1.5 s.
 - Notes are saved locally via SwiftData, searchable across their full text, listed,
   reopenable, editable with automatic saving, re-copyable, and deletable.
+- Notes’ Settings offers Off, Apple Reminders, or Things for automatic task exports.
+  Things supports Inbox/Today and opens briefly; Reminders supports a writable
+  list and No date/Today, saving directly after permission is granted. Background
+  Watch notes wait until Teika is active and idle. Waiting notes keep their original
+  app when the setting changes. Existing notes and later edits are not exported.
+  Unconfirmed deliveries require review before retrying to avoid duplicates.
 - A paired Apple Watch app records on the wrist and sends clips to the iPhone for
   transcription and storage. After setup has completed once, it can record while
   the iPhone is unreachable and queue multiple clips for later delivery.

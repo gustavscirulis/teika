@@ -16,17 +16,27 @@ final class NoteStore {
     }
 
     let container: ModelContainer
+    let defaults: UserDefaults
+    var onNoteSaved: (() -> Void)?
 
-    init(inMemory: Bool = false) throws {
-        let configuration = ModelConfiguration(isStoredInMemoryOnly: inMemory)
+    init(inMemory: Bool = false, defaults: UserDefaults = .standard, storeURL: URL? = nil) throws {
+        self.defaults = defaults
+        let configuration: ModelConfiguration
+        if let storeURL {
+            configuration = ModelConfiguration(url: storeURL)
+        } else {
+            configuration = ModelConfiguration(isStoredInMemoryOnly: inMemory)
+        }
         container = try ModelContainer(for: Note.self, configurations: configuration)
     }
 
     @discardableResult
     func add(text: String, createdAt: Date = .now) throws -> Note {
         let note = Note(text: text, createdAt: createdAt)
+        prepareTaskExport(note)
         container.mainContext.insert(note)
         try container.mainContext.save()
+        onNoteSaved?()
         return note
     }
 
@@ -43,8 +53,18 @@ final class NoteStore {
             return WatchInsert(note: note, inserted: false)
         }
         let note = Note(text: text, createdAt: createdAt, watchClipID: clipID)
+        prepareTaskExport(note)
         container.mainContext.insert(note)
         try container.mainContext.save()
+        onNoteSaved?()
         return WatchInsert(note: note, inserted: true)
+    }
+
+    private func prepareTaskExport(_ note: Note) {
+        let app = TaskExportApp.selected(in: defaults)
+        guard app != .off else { return }
+        note.taskExportAppRaw = app.rawValue
+        note.thingsExportID = UUID().uuidString
+        note.exportState = .pending
     }
 }

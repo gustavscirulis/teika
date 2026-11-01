@@ -17,6 +17,7 @@ struct TeikaApp: App {
     /// launched into the background, where `ContentView` never appears and there is no
     /// view lifecycle for autosave to ride on.
     @State private var store: NoteStore
+    @State private var exporter: TaskExportCoordinator
     /// Activated at launch for the same reason — a session brought up from a view would
     /// miss every clip delivered to a background launch, which is most of them.
     @State private var watchLink: PhoneWatchLink
@@ -29,18 +30,22 @@ struct TeikaApp: App {
         // Same failure behaviour as the `.modelContainer(for:)` this replaces: a store
         // that cannot open leaves the app with nowhere to put anything.
         let store = try! NoteStore()
+        let exporter = TaskExportCoordinator(store: store, isReady: {
+            transcriber.isIdleForExport && RecordingLauncher.shared.pending == nil
+        })
         let inbox = WatchNoteInbox()
         let link = PhoneWatchLink(transcriber: transcriber, store: store, inbox: inbox)
         link.activate()
         _transcriber = State(initialValue: transcriber)
         _store = State(initialValue: store)
+        _exporter = State(initialValue: exporter)
         _watchLink = State(initialValue: link)
         _watchInbox = State(initialValue: inbox)
     }
 
     var body: some Scene {
         WindowGroup {
-            ContentView(transcriber: transcriber, store: store, watchInbox: watchInbox)
+            ContentView(transcriber: transcriber, store: store, watchInbox: watchInbox, exporter: exporter)
                 .preferredColorScheme(.dark)
         }
         .modelContainer(store.container)

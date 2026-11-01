@@ -1,10 +1,11 @@
 # Privacy Policy — Teika
 
-**Last updated: 30 August 2026**
+**Last updated: 1 November 2026**
 
-Teika processes recordings and notes on your devices. It does not upload your
-recordings, transcripts, or notes, and it does not use a remote AI inference
-service. A user-approved speech-model download connects to Hugging Face, Inc.
+Teika processes recordings and notes on your devices and does not use a remote
+AI inference service. It does not upload recordings or notes to a Teika server.
+If you enable task exports, note text is handed to Things or Apple Reminders
+as described below. A user-approved speech-model download connects to Hugging Face, Inc.
 and exposes the limited connection information described below.
 
 ## Your voice
@@ -34,6 +35,36 @@ iOS may include the app's local notes in your personal iCloud or computer device
 backup if you enable device backups. That backup is managed by you and Apple;
 Teika's developer cannot access it. You can exclude Teika in your iCloud backup
 settings. The downloaded speech model is excluded from device backups.
+
+## Optional task app integration
+
+The **Add notes to** setting defaults to **Off**. Choosing Things or Apple
+Reminders sends each new note’s short title and transcript to that app on your
+device. Audio is never sent to either app, and previously saved notes are not
+exported.
+
+Things receives text through its URL scheme and creates tasks in Inbox or Today.
+Transcripts exceeding Things’ 10,000-character notes limit are shortened with a
+notice; the complete note remains in Teika.
+
+Apple Reminders uses Apple’s EventKit framework and requires your permission to
+read and write reminders. Teika reads list names to let you choose a writable
+list and saves new reminders there with the complete transcript, either undated
+or due today. Teika does not import your existing reminders. You can revoke
+access in iOS Settings.
+
+Teika stores delivery status, the chosen app, and returned task identifiers
+locally. Watch notes received in the background wait until Teika is open and
+ready. Off pauses pending exports and excludes notes saved while off. Switching
+apps leaves waiting notes assigned to their original app. Editing or deleting a
+note in Teika does not update or delete its exported task.
+
+Things handles exported text under Cultured Code’s [privacy
+policy](https://culturedcode.com/privacy/) and may sync it through Things Cloud.
+Reminders may sync it through iCloud or the account associated with the selected
+list. Those services handle exported text under their own privacy policies.
+Teika’s developer does not receive exported text, reminder lists, or account
+credentials.
 
 ## Your clipboard
 
