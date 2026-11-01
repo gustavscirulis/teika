@@ -11,6 +11,7 @@ import SwiftUI
 enum Route: Hashable {
     case notes
     case note(Note)
+    case settings
 }
 
 struct ContentView: View {
@@ -18,6 +19,7 @@ struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
     let store: NoteStore
     let watchInbox: WatchNoteInbox
+    let exporter: TaskExportCoordinator
     @Query private var notes: [Note]
     @AppStorage("showsRecordingShortcutPrompt") private var showsRecordingShortcutPrompt = true
     private let launcher = RecordingLauncher.shared
@@ -110,6 +112,8 @@ struct ContentView: View {
                     )
                 case .note(let note):
                     NoteDetailView(note: note)
+                case .settings:
+                    SettingsView(exporter: exporter)
                 }
             }
             .toolbar {
@@ -128,6 +132,38 @@ struct ContentView: View {
                 Text(downloadConfirmationMessage)
             }
         }
+        .overlay(alignment: .bottom) {
+            VStack(spacing: 8) {
+                if exporter.showsSuccess {
+                    Label(exporter.successMessage, systemImage: "checkmark")
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(.regularMaterial, in: Capsule())
+                }
+                if exporter.needsAttention && !path.contains(.settings) {
+                    Button { path = [.notes, .settings] } label: {
+                        Label("Task export needs attention", systemImage: "exclamationmark.circle")
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .background(.regularMaterial, in: Capsule())
+                    }
+                }
+            }
+            .font(.subheadline)
+            .padding(.bottom, 20)
+        }
+        .task(id: "\(scenePhase)-\(exporter.successSerial)") {
+            guard exporter.showsSuccess, scenePhase == .active else { return }
+            UIAccessibility.post(notification: .announcement, argument: exporter.successMessage)
+            try? await Task.sleep(for: .seconds(2))
+            guard !Task.isCancelled else { return }
+            exporter.showsSuccess = false
+        }
+        .task(id: "\(scenePhase)-\(exportAvailability)") {
+            exporter.updateAvailability(
+                isActive: scenePhase == .active, canDispatch: exportAvailability)
+        }
+        .onChange(of: notes.count) { exporter.refresh() }
         #if DEBUG
         .overlay {
             // The drawer itself must not appear in an App Store capture. Dial values are
@@ -159,6 +195,10 @@ struct ContentView: View {
             await transcriber.prepareIfNeeded()
         }
         .onOpenURL { url in
+            if url.scheme == TeikaURL.scheme, url.host == ThingsExportURL.callbackHost {
+                exporter.handle(url)
+                return
+            }
             guard url.scheme == TeikaURL.scheme, url.host == TeikaURL.recordHost else { return }
             launcher.request()
         }
@@ -219,6 +259,12 @@ struct ContentView: View {
                 #endif
             }
         }
+    }
+
+    private var exportAvailability: Bool {
+        scenePhase == .active && transcriber.isIdleForExport
+            && launcher.pending == nil && armedStart == nil
+            && !path.contains(.settings) && !showsDownloadConfirmation && !showsAppStoreScreenshots
     }
 
     private var recordingShortcutPromptBinding: Binding<Bool> {
@@ -737,6 +783,8 @@ struct ContentView: View {
 
 #Preview {
     let store = try! NoteStore()
-    return ContentView(transcriber: SpeechTranscriber(), store: store, watchInbox: WatchNoteInbox())
+    return ContentView(
+        transcriber: SpeechTranscriber(), store: store, watchInbox: WatchNoteInbox(),
+        exporter: TaskExportCoordinator(store: store))
         .modelContainer(store.container)
 }

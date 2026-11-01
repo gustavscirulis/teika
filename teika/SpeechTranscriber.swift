@@ -32,6 +32,9 @@ final class SpeechTranscriber {
     private(set) var noticeOffersSettings = false
     var onTranscription: ((String) -> Void)?
 
+    /// Includes the microphone-permission/startup interval before the engine starts.
+    var isIdleForExport: Bool { activityState == .idle && !sessionActive }
+
     let levelMeter = AudioLevelMeter()
 
     private var asrManager: AsrManager?

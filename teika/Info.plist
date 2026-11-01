@@ -2,6 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>Teika uses Reminders access to show your lists and add new voice notes to the list you choose.</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>things</string>
+	</array>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

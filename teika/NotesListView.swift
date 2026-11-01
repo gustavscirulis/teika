@@ -17,9 +17,6 @@ struct NotesListView: View {
     @State private var showCopied = false
     @State private var searchText = ""
     @State private var showsRecordingSetup = false
-    private let privacyURL = URL(string: "https://teika.app/privacy/")!
-    private let supportURL = URL(string: "https://teika.app/support/")!
-    private let sourceURL = URL(string: "https://github.com/gustavscirulis/teika")!
 
     private var filteredNotes: [Note] {
         guard !showsEmptyState else { return [] }
@@ -86,21 +83,8 @@ struct NotesListView: View {
         .navigationTitle("Notes")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    Link(destination: privacyURL) {
-                        Label("Privacy Policy", systemImage: "hand.raised")
-                    }
-                    Link(destination: supportURL) {
-                        Label("Support", systemImage: "questionmark.circle")
-                    }
-                    Link(destination: sourceURL) {
-                        Label(
-                            "View Source",
-                            systemImage: "chevron.left.forwardslash.chevron.right"
-                        )
-                    }
-                } label: {
-                    Label("About Teika", systemImage: "info.circle")
+                NavigationLink(value: Route.settings) {
+                    Label("Settings", systemImage: "gearshape")
                 }
             }
         }

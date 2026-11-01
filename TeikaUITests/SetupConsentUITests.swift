@@ -6,6 +6,7 @@ final class SetupConsentUITests: XCTestCase {
     override func setUpWithError() throws {
         continueAfterFailure = false
         app = XCUIApplication()
+        app.launchArguments += ["-taskExportApp", "off"]
         app.launch()
     }
 
@@ -37,19 +38,33 @@ final class SetupConsentUITests: XCTestCase {
         XCTAssertFalse(app.progressIndicators.firstMatch.exists)
     }
 
-    func testAboutLinksAreAvailableFromNotesList() throws {
+    func testSettingsAndAboutLinksAreAvailableFromNotesList() throws {
         let notesButton = app.buttons["Notes"]
         XCTAssertTrue(notesButton.waitForExistence(timeout: 5))
         notesButton.tap()
 
-        let linksButton = app.buttons["About Teika"]
+        let linksButton = app.buttons["Settings"]
         XCTAssertTrue(linksButton.waitForExistence(timeout: 2))
         linksButton.tap()
 
-        XCTAssertTrue(app.buttons["Privacy Policy"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.buttons["Support"].exists)
-        XCTAssertTrue(app.buttons["View Source"].exists)
-        keepScreenshot(named: "About Teika links")
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 2))
+        let appPicker = app.buttons["taskExportApp"]
+        XCTAssertTrue(appPicker.waitForExistence(timeout: 2))
+        XCTAssertFalse(app.buttons["Destination"].exists)
+        XCTAssertFalse(app.buttons["reminderExportList"].exists)
+        appPicker.tap()
+        XCTAssertTrue(app.buttons["Apple Reminders"].waitForExistence(timeout: 2))
+        app.buttons["Things"].tap()
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Destination")).firstMatch.exists)
+        XCTAssertTrue(app.descendants(matching: .any)["Get Things"].firstMatch.exists)
+        XCTAssertTrue(app.descendants(matching: .any)["Privacy Policy"].firstMatch.waitForExistence(timeout: 2))
+        XCTAssertTrue(app.descendants(matching: .any)["Support"].firstMatch.exists)
+        XCTAssertTrue(app.descendants(matching: .any)["View Source"].firstMatch.exists)
+        keepScreenshot(named: "Settings")
+        appPicker.tap()
+        app.buttons["Off"].tap()
+        app.navigationBars["Settings"].buttons.firstMatch.tap()
+        XCTAssertTrue(app.navigationBars["Notes"].waitForExistence(timeout: 2))
     }
 
     func testAffirmativeActionStartsModelDownload() throws {
