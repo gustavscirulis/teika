@@ -7,6 +7,7 @@ export default function SiteFooter() {
       <div className="shell">
         <div className="site-footer-inner">
           <nav aria-label="Footer">
+            <Link href="/updates/">Updates</Link>
             <Link href="/support/">Support</Link>
             <Link href="/privacy/">Privacy</Link>
             <a href={SOURCE_URL} rel="noreferrer noopener" target="_blank">

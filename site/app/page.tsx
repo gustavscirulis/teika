@@ -23,6 +23,10 @@ const STEPS = [
     lead: 'Paste it now, or find it later',
     body: 'Every transcription is copied to your clipboard and saved on your phone. Open a saved note to edit the text; changes save automatically.',
   },
+  {
+    lead: 'Coming next: turn a thought into a task',
+    body: 'The next release adds Things and Apple Reminders to Notes Settings, so new notes can go straight to your task list. Leave it off when all you need is a note.',
+  },
 ];
 
 export default function Home() {

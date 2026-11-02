@@ -1,0 +1,14 @@
+{
+  "releases": [
+    {
+      "version": "1.0.3",
+      "date": "2026-10-13",
+      "notes": [
+        "You can now edit saved notes. Open a note from your library, select text, and type your changes. Edits save automatically."
+      ]
+    }
+  ],
+  "pending": [
+    "Automatically turn new voice notes into tasks in Things or Apple Reminders. Choose your destination in Notes Settings."
+  ]
+}

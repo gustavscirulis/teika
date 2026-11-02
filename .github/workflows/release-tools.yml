@@ -1,0 +1,44 @@
+name: Release tooling and site
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  release-tools:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - run: bash -n run.sh
+      - run: python3 -m unittest discover -s tests -p 'test_*.py'
+      - run: bash tests/test_things_exports.sh
+      - run: ./run.sh changes --check
+      - name: Require change tracking in pull requests
+        if: github.event_name == 'pull_request'
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          python3 - <<'PY'
+          import os, sys
+          sys.path.insert(0, 'scripts')
+          import ledger
+          import re
+          explanation = re.search(r'(?im)^No release impact:\s*\S.+', os.environ.get('PR_BODY', ''))
+          ledger.check_coverage('.', 'origin/main', bool(explanation))
+          PY
+      - run: swift test --disable-sandbox --package-path tools/ReleaseTools
+      - run: npm ci --ignore-scripts
+        working-directory: site
+      - run: npm run lint && npm run build
+        working-directory: site

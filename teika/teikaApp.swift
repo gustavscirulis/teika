@@ -29,13 +29,27 @@ struct TeikaApp: App {
         let transcriber = SpeechTranscriber()
         // Same failure behaviour as the `.modelContainer(for:)` this replaces: a store
         // that cannot open leaves the app with nowhere to put anything.
+        #if DEBUG
+        let capturing = AppStoreScreenshotContent.launchScene != nil
+        let defaults = capturing ? UserDefaults(suiteName: "teika.release-screenshot")! : .standard
+        if capturing {
+            defaults.removePersistentDomain(forName: "teika.release-screenshot")
+            defaults.set("things", forKey: "taskExportApp")
+        }
+        let store = try! NoteStore(inMemory: capturing, defaults: defaults)
+        #else
         let store = try! NoteStore()
+        #endif
         let exporter = TaskExportCoordinator(store: store, isReady: {
             transcriber.isIdleForExport && RecordingLauncher.shared.pending == nil
         })
         let inbox = WatchNoteInbox()
         let link = PhoneWatchLink(transcriber: transcriber, store: store, inbox: inbox)
+        #if DEBUG
+        if !capturing { link.activate() }
+        #else
         link.activate()
+        #endif
         _transcriber = State(initialValue: transcriber)
         _store = State(initialValue: store)
         _exporter = State(initialValue: exporter)

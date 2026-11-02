@@ -56,6 +56,13 @@ final class WatchLink: NSObject {
     }
 
     func activate() {
+        #if DEBUG
+        let args = ProcessInfo.processInfo.arguments
+        if let index = args.firstIndex(of: "-teika-release-screenshot"), args.indices.contains(index + 1) {
+            phase = args[index + 1] == "queued" ? .queued : .recording
+            return
+        }
+        #endif
         guard !hasActivated else {
             reconcileOutbox()
             refreshGate()
@@ -77,6 +84,9 @@ final class WatchLink: NSObject {
     }
 
     func setActive(_ active: Bool) {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-teika-release-screenshot") { return }
+        #endif
         guard active != isActive else { return }
         isActive = active
         log.info("scene active: \(active)")

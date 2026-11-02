@@ -1,0 +1,16 @@
+{
+  "notes": [
+    {
+      "changes": [
+        "automatic-task-exports",
+        "task-export-settings",
+        "persistent-task-delivery",
+        "task-export-privacy",
+        "task-export-site-help",
+        "task-delivery-recovery",
+        "task-description-content"
+      ],
+      "text": "Automatically turn new voice notes into tasks in Things or Apple Reminders. Choose your destination in Notes Settings."
+    }
+  ]
+}

@@ -176,6 +176,13 @@ struct ContentView: View {
         }
         #endif
         .task {
+            #if DEBUG
+            if let scene = AppStoreScreenshotContent.launchScene {
+                if scene == "notes" { path = [.notes] }
+                if scene == "settings" { path = [.notes, .settings] }
+                return
+            }
+            #endif
             transcriber.onTranscription = { text in
                 #if DEBUG
                 // Screenshot mode is a visual fixture. Even if an already-running
@@ -222,6 +229,7 @@ struct ContentView: View {
         }
         #if DEBUG
         .onChange(of: showsScreenshotRecording) { _, isActive in
+            guard AppStoreScreenshotContent.launchScene == nil else { return }
             if isActive {
                 Task {
                     let didStart = await screenshotAudioMonitor.start()
@@ -249,7 +257,7 @@ struct ContentView: View {
             if phase == .active {
                 presentWatchNote()
                 #if DEBUG
-                if showsScreenshotRecording {
+                if showsScreenshotRecording && AppStoreScreenshotContent.launchScene == nil {
                     Task {
                         let didStart = await screenshotAudioMonitor.start()
                         guard !didStart, showsScreenshotRecording else { return }
@@ -288,7 +296,7 @@ struct ContentView: View {
 
     private var showsAppStoreScreenshots: Bool {
         #if DEBUG
-        debugDial.values.appStoreScreenshots
+        AppStoreScreenshotContent.launchScene != nil || debugDial.values.appStoreScreenshots
         #else
         false
         #endif
@@ -296,7 +304,7 @@ struct ContentView: View {
 
     private var showsScreenshotRecording: Bool {
         #if DEBUG
-        showsAppStoreScreenshots && debugDial.values.showRecordingState
+        AppStoreScreenshotContent.launchScene == "recording" || (showsAppStoreScreenshots && debugDial.values.showRecordingState)
         #else
         false
         #endif

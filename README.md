@@ -117,6 +117,22 @@ TEIKA_DEVELOPMENT_TEAM=YOUR_TEAM_ID ./run.sh upload
 The upload path uses the Apple Developer account signed into Xcode and preserves
 the version and build number declared in `project.yml`.
 
+### Track changes and release an update
+
+Record meaningful work in [`changes.md`](changes.md) as it is implemented. The
+release workflow writes notes from those entries, updates the site, uploads Teika,
+fills App Store metadata and submits for review with automatic release after approval.
+
+```sh
+./run.sh changes
+./run.sh release doctor
+./run.sh release prepare --dry-run
+```
+
+See [the release workflow](docs/releases.md) for preparation, screenshot capture,
+publishing, validation reuse, and recovery. Preparing tooling or running a dry run
+does not publish an app release.
+
 ### Run the tests
 
 Generate the project, then select a simulator installed on your Mac:

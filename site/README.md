@@ -1,6 +1,6 @@
 # Teika site
 
-Marketing page, Support page and Privacy Policy for Teika. Next.js App Router,
+Marketing page, Updates, Support and Privacy Policy for Teika. Next.js App Router,
 statically exported, no server.
 
 From the repo root, `run.sh` drives this as well as the app:
@@ -34,6 +34,17 @@ is checked against the app source or the model card — see `../PRODUCT.md`,
 "Evidence on Hand", for what may and may not be claimed here.
 
 ## Deploying
+
+Production already uses the Vercel Git integration. Release requests merge a
+validated release PR to `main` and verify its Production deployment immediately,
+without waiting for Apple approval. The release command records this separately
+from App Store upload/submission; see `../docs/releases.md`.
+
+`lib/releases.json` contains authored release notes and grouped upcoming summaries
+from `../releases/upcoming.json`. Raw change-ledger details are never published.
+Regenerate it with `../run.sh changes --sync-site`
+after editing either, and commit the result. The Updates page renders it entirely
+at build time, with no credentials, filesystem access at runtime, or API polling.
 
 Vercel can serve the static export using `vercel.json`. The public repository
 can also publish `out/` directly with GitHub Pages.

@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "version": "1.0.3",
+  "build": 5,
+  "status": "distributed",
+  "date": "2026-10-13",
+  "baseline": true,
+  "source_commit": "f420a77886a2a07e14a32298c83fae1787762c84",
+  "locale": "en-US",
+  "changes": []
+}
