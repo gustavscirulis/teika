@@ -10,8 +10,9 @@
 - On an explicit release request, own version/build selection, authored notes,
   metadata, screenshots, validation, release PR merge, website verification,
   upload, review submission, and read-back. Default to a patch update and automatic
-  publication after approval. Publish the site immediately through the existing
-  Vercel Git integration; do not wait for Apple approval.
+  publication after approval. Merge the release PR only after App Store Connect
+  confirms successful review submission. Then publish the site immediately through
+  the existing Vercel Git integration; do not wait for Apple approval.
 - Write 1–4 concise customer-facing bullets from the selected non-Internal entries,
   combining related work into a single customer benefit and cross-checking the source
   diff. The ledger is an audit trail, not public copy: omit implementation details,

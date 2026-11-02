@@ -205,6 +205,85 @@ class ReleaseTests(unittest.TestCase):
         self.assertEqual(calls, ["inspect", "status", "stage", "submit", "verify"])
         self.assertEqual(json.loads((directory / "release.json").read_text())["status"], "submitted")
 
+    def confirmed_upload(self):
+        directory = self.prepare()
+        receipt = {"version": "1.0.4", "build": 10, "content_sha256": release.content_hash(directory),
+                   "native_source_fingerprint": "native", "uploaded": True}
+        release.write_json(self.private / "releases/1.0.4/receipt.json", receipt)
+        self.remote["builds"] = [{"id": "build", "attributes": {"version": "10", "teikaMarketingVersion": "1.0.4", "processingState": "VALID"}}]
+        return directory
+
+    def submission_api(self, command, **kwargs):
+        if command == "stage": return {"version_id": "version"}
+        if command == "submit": return {"submission": {"id": "review"}}
+        if command == "verify": return {"version_state": "WAITING_FOR_REVIEW"}
+        return self.api(command, **kwargs)
+
+    def test_publish_merges_only_after_verified_review_submission(self):
+        directory = self.confirmed_upload()
+        calls = []
+        def api(command, **kwargs):
+            calls.append(command)
+            return self.submission_api(command, **kwargs)
+        def website(*args, **kwargs):
+            calls.append("website")
+            self.assertEqual(json.loads((directory / "release.json").read_text())["status"], "prepared")
+        with patch.object(release, "asc", side_effect=api), patch.object(release, "run", return_value=""), \
+             patch.object(native_validation, "fingerprint", return_value="native"), patch.object(release, "website", side_effect=website), \
+             contextlib.redirect_stdout(io.StringIO()):
+            release.publish(self.args("publish"))
+        self.assertEqual(calls, ["inspect", "status", "stage", "submit", "verify", "website"])
+        self.assertEqual(json.loads((directory / "release.json").read_text())["status"], "submitted")
+
+    def test_release_failures_leave_website_and_pr_untouched(self):
+        self.confirmed_upload()
+        for failure in ("processing", "stage", "submit", "verify"):
+            with self.subTest(failure=failure):
+                self.remote["builds"][0]["attributes"]["processingState"] = "INVALID" if failure == "processing" else "VALID"
+                def api(command, **kwargs):
+                    if command == failure: raise RuntimeError("Simulated " + failure + " failure")
+                    return self.submission_api(command, **kwargs)
+                with patch.object(release, "asc", side_effect=api), patch.object(release, "run", return_value=""), \
+                     patch.object(native_validation, "fingerprint", return_value="native"), patch.object(release, "website") as website, \
+                     contextlib.redirect_stdout(io.StringIO()), self.assertRaises(RuntimeError):
+                    release.publish(self.args("publish"))
+                website.assert_not_called()
+        receipt = json.loads((self.private / "releases/1.0.4/receipt.json").read_text())
+        self.assertTrue(receipt["uploaded"])
+
+    def test_website_failure_preserves_successful_submission_record(self):
+        directory = self.confirmed_upload()
+        with patch.object(release, "asc", side_effect=self.submission_api), patch.object(release, "run", return_value=""), \
+             patch.object(native_validation, "fingerprint", return_value="native"), \
+             patch.object(release, "website", side_effect=RuntimeError("Vercel unavailable")), \
+             contextlib.redirect_stdout(io.StringIO()), self.assertRaisesRegex(RuntimeError, "Vercel unavailable"):
+            release.publish(self.args("publish"))
+        record = json.loads((directory / "release.json").read_text())
+        self.assertEqual((record["status"], record["submission_id"]), ("submitted", "review"))
+        self.assertEqual(json.loads((self.private / "releases/1.0.4/audit.json").read_text())["version_state"], "WAITING_FOR_REVIEW")
+
+    def test_website_rejects_unsubmitted_release_before_any_git_operations(self):
+        self.prepare()
+        args = self.args("website"); args.version = "1.0.4"
+        with patch.object(release, "run") as run, patch.object(release, "asc") as asc, \
+             self.assertRaisesRegex(RuntimeError, "Submit the release successfully"):
+            release.website(args)
+        run.assert_not_called()
+        asc.assert_not_called()
+
+    def test_website_rechecks_apple_instead_of_trusting_local_submission_ids(self):
+        self.confirmed_upload()
+        path = self.private / "releases/1.0.4/receipt.json"
+        receipt = json.loads(path.read_text())
+        receipt.update(version_id="version", build_id="build", submission_id="review")
+        release.write_json(path, receipt)
+        args = self.args("website"); args.version = "1.0.4"
+        with patch.object(release, "run") as run, patch.object(native_validation, "fingerprint", return_value="native"), \
+             patch.object(release, "verify", return_value={"version_state": "PREPARE_FOR_SUBMISSION"}), \
+             self.assertRaisesRegex(RuntimeError, "Apple has not confirmed"):
+            release.website(args)
+        run.assert_not_called()
+
     def test_changed_notes_block_receipt_resume(self):
         directory = self.prepare()
         receipt = {"version": "1.0.4", "build": 10, "content_sha256": release.content_hash(directory), "native_source_fingerprint": "native", "uploaded": True}
@@ -248,6 +327,7 @@ class ReleaseTests(unittest.TestCase):
              patch.object(native_validation, "fingerprint", return_value="native"), contextlib.redirect_stdout(io.StringIO()):
             release.publish(self.args("submit"))
         self.assertEqual(calls, ["inspect", "verify"])
+        self.assertEqual(json.loads((self.private / "releases/1.0.4/receipt.json").read_text())["submission_id"], "review")
 
     def test_processing_failure_preserves_upload(self):
         directory = self.prepare()
@@ -262,7 +342,7 @@ class ReleaseTests(unittest.TestCase):
             release.publish(self.args("submit"))
         self.assertTrue(json.loads(path.read_text())["uploaded"])
 
-    def test_distributed_release_is_verified_without_repeating_completed_stages(self):
+    def test_distributed_release_resumes_site_without_repeating_apple_stages(self):
         directory = self.prepare()
         receipt = {"version": "1.0.4", "build": 10, "content_sha256": release.content_hash(directory),
                    "native_source_fingerprint": "native", "uploaded": True, "build_id": "build", "version_id": "version", "submission_id": "review"}
@@ -277,7 +357,7 @@ class ReleaseTests(unittest.TestCase):
              patch.object(release, "logged") as logged, contextlib.redirect_stdout(io.StringIO()):
             release.publish(self.args("publish"))
         logged.assert_not_called()
-        website.assert_not_called()
+        website.assert_called_once()
         self.assertEqual(json.loads((directory / "release.json").read_text())["status"], "distributed")
 
     def test_status_reports_website_upload_submission_and_distribution_separately(self):
@@ -383,9 +463,29 @@ class ReleaseTests(unittest.TestCase):
             return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">II", 1320, 2868) + bytes([8, color, 0, 0, 0])) + chunk(b"IEND", b"")
         path.write_bytes(png(2))
         self.assertEqual(screenshots.validate_png(path, "APP_IPHONE_69"), (1320, 2868))
+        self.assertEqual(screenshots.validate_png(path, "APP_IPHONE_67"), (1320, 2868))
         with self.assertRaises(RuntimeError): screenshots.validate_png(path, "APP_WATCH_SERIES_7")
         path.write_bytes(png(6))
         with self.assertRaisesRegex(RuntimeError, "opaque"): screenshots.validate_png(path, "APP_IPHONE_69")
+
+    def test_legacy_screenshot_display_resumes_without_changing_reviewed_content(self):
+        directory = self.prepare()
+        image = directory / "phone.png"
+        def chunk(kind, data):
+            return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
+        image.write_bytes(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">II", 1320, 2868) + bytes([8, 2, 0, 0, 0])) + chunk(b"IEND", b""))
+        group = {"display": "APP_IPHONE_69", "files": [{"path": "phone.png", "sha256": hashlib.sha256(image.read_bytes()).hexdigest()}]}
+        release.write_json(directory / "screenshots.json", {"mode": "refresh", "reviewed": True, "reason": "Reviewed capture", "sets": [group]})
+        before = release.content_hash(directory)
+        plan = release.screenshot_plan(directory)
+        self.assertEqual(plan["sets"][0]["display"], "APP_IPHONE_67")
+        self.assertEqual(release.content_hash(directory), before)
+        self.assertEqual(screenshots.FAMILIES["iphone"][3], "APP_IPHONE_67")
+        plan = json.loads((directory / "screenshots.json").read_text())
+        plan["sets"].append(dict(group, display="APP_IPHONE_67"))
+        release.write_json(directory / "screenshots.json", plan)
+        with self.assertRaisesRegex(RuntimeError, "Duplicate display"):
+            release.screenshot_plan(directory)
 
     def test_real_backfill_has_expected_entries_and_baseline(self):
         items = ledger.entries(REPO)

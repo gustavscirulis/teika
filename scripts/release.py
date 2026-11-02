@@ -239,10 +239,11 @@ def screenshot_plan(directory):
         return plan
     if plan.get("mode") != "refresh" or not plan.get("sets"):
         raise RuntimeError("Capture screenshots or explicitly review reuse before submission")
-    from screenshots import validate_png
+    from screenshots import canonical_display, validate_png
     displays = set()
     for group in plan["sets"]:
-        display = group["display"]
+        display = canonical_display(group["display"])
+        group["display"] = display
         if display in displays or not 1 <= len(group["files"]) <= 10:
             raise RuntimeError("Duplicate display or invalid screenshot count")
         displays.add(display)
@@ -282,7 +283,7 @@ def publish(args):
     remote_version = next((item for item in remote["versions"] if item["attributes"]["versionString"] == version), None)
     plan = {"action": args.action, "version": version, "build": manifest["build"], "notes": text, "metadata": metadata,
             "screenshots": assets["mode"], "submission": "App Review", "release_type": "AFTER_APPROVAL",
-            "website": "Merge release PR and verify Vercel immediately"}
+            "website": "After verified App Review submission, merge release PR and verify Vercel"}
     print(json.dumps(plan, indent=2, ensure_ascii=False), flush=True)
     if args.dry_run:
         return
@@ -313,11 +314,10 @@ def publish(args):
         if not receipt.get("submission_id") or not receipt.get("build_id") or not remote_version:
             raise RuntimeError("Remote version already submitted without matching local submission evidence")
         audit = verify(manifest, directory, receipt)
-        save_submission(manifest, directory, receipt, audit)
+        write_json(receipt_path, receipt)
+        finish_submission(args, manifest, directory, receipt, audit)
         print("Already submitted; verified without repeating upload or review submission.")
         return
-    if args.action == "publish":
-        website(args, version=version)
     if args.action in ("publish", "upload") and not receipt.get("uploaded"):
         if receipt.get("upload_started"):
             raise RuntimeError("Previous upload ended ambiguously. Inspect upload.log and Apple; do not upload again blindly")
@@ -388,7 +388,7 @@ def publish(args):
     write_json(receipt_path, receipt)
     audit = verify(manifest, directory, receipt)
     write_json(attempt / "audit.json", audit)
-    save_submission(manifest, directory, receipt, audit)
+    finish_submission(args, manifest, directory, receipt, audit)
     print(f"Verified {version} ({manifest['build']}): {audit['version_state']}; automatic publication after approval.")
 
 
@@ -410,14 +410,34 @@ def save_submission(manifest, directory, receipt, audit):
     write_json(private_root() / "releases" / manifest["version"] / "audit.json", audit)
 
 
+def finish_submission(args, manifest, directory, receipt, audit):
+    # Merge the exact prepared revision only after Apple's submission read-back.
+    # Persist the successful submission even if Git/Vercel publication then fails.
+    try:
+        if args.action == "publish":
+            website(args, version=manifest["version"])
+    finally:
+        save_submission(manifest, directory, receipt, audit)
+
+
 def website(args, version=None):
     version = version or select_version(args.version)
-    release_path(version)
+    directory = release_path(version)
     receipt_path = private_root() / "releases" / version / "website.json"
     saved = json.loads(receipt_path.read_text()) if receipt_path.exists() else {}
     if args.dry_run:
-        print(json.dumps({"website": saved, "action": "Validate, merge release PR, verify Vercel Production and public pages"}, indent=2))
+        print(json.dumps({"website": saved, "action": "Verify App Review submission, validate and merge release PR, verify Vercel Production and public pages"}, indent=2))
         return
+    manifest = json.loads((directory / "release.json").read_text())
+    upload_path = private_root() / "releases" / version / "receipt.json"
+    receipt = json.loads(upload_path.read_text()) if upload_path.exists() else {}
+    if not receipt.get("uploaded") or not all(receipt.get(key) for key in ("version_id", "build_id", "submission_id")):
+        raise RuntimeError("Submit the release successfully before merging its PR or publishing the website")
+    if content_hash(directory) != receipt.get("content_sha256") or native_validation.fingerprint(ROOT, include_resolution=False) != receipt.get("native_source_fingerprint"):
+        raise RuntimeError("Release source/content changed since upload; inspect durable receipts before website publication")
+    audit = verify(manifest, directory, receipt)
+    if audit["version_state"] not in SUBMITTED:
+        raise RuntimeError("Apple has not confirmed App Review submission; do not merge the release PR")
     # This action only runs on explicit publish/website, never during tooling validation.
     if not saved.get("merged_commit"):
         if run(["git", "status", "--porcelain"], capture=True).strip():
