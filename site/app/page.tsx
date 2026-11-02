@@ -25,7 +25,7 @@ const STEPS = [
   },
   {
     lead: 'Coming next: turn a thought into a task',
-    body: 'The next release adds Things and Apple Reminders to Notes Settings, so new notes can go straight to your task list. Leave it off when all you need is a note.',
+    body: 'The next release adds Apple Reminders and Things to Notes Settings, so new notes can go straight to your task list. Leave it off when all you need is a note.',
   },
 ];
 

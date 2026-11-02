@@ -304,6 +304,77 @@ class ReleaseTests(unittest.TestCase):
         with patch.object(ledger.subprocess, "check_output", return_value="releases/1.0.4/release.json\nproject.yml\nsite/lib/releases.json\n"):
             ledger.check_coverage(self.root, "origin/main")
 
+    def test_screenshot_capture_falls_back_from_incompatible_runtime(self):
+        available = {
+            "runtimes": [
+                {"identifier": "runtime.iOS-26-5", "version": "26.5", "isAvailable": True},
+                {"identifier": "runtime.iOS-27-1", "version": "27.1", "isAvailable": True},
+                {"identifier": "runtime.watchOS-27-1", "version": "27.1", "isAvailable": True},
+                {"identifier": "runtime.iOS-28", "version": "28.0", "isAvailable": False},
+            ],
+            "devicetypes": [{"name": "iPhone 17 Pro Max", "identifier": "device.iphone17"}],
+        }
+        incompatible = subprocess.CompletedProcess([], 147, "", "domain=com.apple.CoreSimulator.SimError, code=403: Incompatible device")
+        created = subprocess.CompletedProcess([], 0, "new-device-id\n", "")
+        with patch.object(screenshots.subprocess, "run", side_effect=[incompatible, created]) as create, contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(screenshots.create_simulator(available, "iphone"), "new-device-id")
+        self.assertEqual([call.args[0][-1] for call in create.call_args_list], ["runtime.iOS-27-1", "runtime.iOS-26-5"])
+        self.assertTrue(all(call.args[0][-2] == "device.iphone17" for call in create.call_args_list))
+
+    def test_screenshot_capture_tries_other_supported_device_models(self):
+        available = {
+            "runtimes": [{"identifier": "runtime.iOS-27-1", "version": "27.1", "isAvailable": True}],
+            "devicetypes": [
+                {"name": "iPhone 16 Pro Max", "identifier": "device.iphone16"},
+                {"name": "iPhone 17 Pro Max", "identifier": "device.iphone17"},
+            ],
+        }
+        incompatible = subprocess.CompletedProcess([], 147, "", "domain=com.apple.CoreSimulator.SimError, code=403: Incompatible device")
+        created = subprocess.CompletedProcess([], 0, "new-device-id\n", "")
+        with patch.object(screenshots.subprocess, "run", side_effect=[incompatible, created]) as create, contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(screenshots.create_simulator(available, "iphone"), "new-device-id")
+        self.assertEqual([call.args[0][-2] for call in create.call_args_list], ["device.iphone17", "device.iphone16"])
+
+    def test_screenshot_capture_preserves_service_failures(self):
+        available = {
+            "runtimes": [{"identifier": "runtime.iOS-27-1", "version": "27.1", "isAvailable": True}],
+            "devicetypes": [{"name": "iPhone 17 Pro Max", "identifier": "device.iphone17"}],
+        }
+        failure = subprocess.CompletedProcess([], 1, "", "CoreSimulatorService connection became invalid")
+        with patch.object(screenshots.subprocess, "run", return_value=failure) as create:
+            with self.assertRaisesRegex(RuntimeError, "CoreSimulatorService connection became invalid"):
+                screenshots.create_simulator(available, "iphone")
+        create.assert_called_once()
+        incompatible = subprocess.CompletedProcess([], 147, "", "domain=com.apple.CoreSimulator.SimError, code=403: Incompatible device")
+        with patch.object(screenshots.subprocess, "run", return_value=incompatible), contextlib.redirect_stdout(io.StringIO()):
+            with self.assertRaisesRegex(RuntimeError, "No compatible iphone"):
+                screenshots.create_simulator(available, "iphone")
+
+    def test_opaque_screenshot_export_preserves_pixels_and_rejects_transparency(self):
+        path = self.root / "capture.png"
+        def chunk(kind, data):
+            return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
+        def png(alpha):
+            return (b"\x89PNG\r\n\x1a\n"
+                    + chunk(b"IHDR", struct.pack(">II", 2, 1) + bytes([8, 6, 0, 0, 0]))
+                    + chunk(b"sRGB", b"\x00")
+                    + chunk(b"IDAT", zlib.compress(bytes([0, 17, 34, 51, alpha, 85, 102, 119, 255])))
+                    + chunk(b"IEND", b""))
+        path.write_bytes(png(255))
+        screenshots.export_opaque_png(path)
+        converted = path.read_bytes()
+        self.assertEqual(struct.unpack(">II", converted[16:24]), (2, 1))
+        self.assertEqual(converted[25], 2)
+        with patch.object(release, "run") as run:
+            screenshots.export_opaque_png(path)
+        run.assert_not_called()
+        original = png(128)
+        path.write_bytes(original)
+        with self.assertRaises(subprocess.CalledProcessError):
+            screenshots.export_opaque_png(path)
+        self.assertEqual(path.read_bytes(), original)
+        self.assertFalse(path.with_name("capture.opaque.png").exists())
+
     def test_dimensions_are_checked_without_resizing(self):
         path = self.root / "capture.png"
         def chunk(kind, data):
