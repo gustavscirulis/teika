@@ -60,6 +60,8 @@ ${BOLD}Usage${RESET}
   ./run.sh archive              Shorthand for: appstore archive
   ./run.sh upload               Shorthand for: appstore upload
   ./run.sh changes              Show pending changes and release assignments
+  ./run.sh release publish --version 1.2.3
+                               Upload, submit for review, and publish the website
   ./run.sh release --help       Release preparation, publishing and recovery
   ./run.sh <destination>        Shorthand for: app <destination>
   ./run.sh --help               This text

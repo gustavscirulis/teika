@@ -347,9 +347,9 @@ def publish(args):
         receipt["uploaded"] = True
         write_json(receipt_path, receipt)
     if not receipt.get("uploaded"):
-        raise RuntimeError("No confirmed upload. Run release upload first")
+        raise RuntimeError("No confirmed upload. Run release publish to upload and submit, or release upload for upload only")
     if args.action == "upload":
-        print("Upload confirmed. Resume with ./run.sh release submit --version " + version)
+        print("Upload confirmed. Complete the release with ./run.sh release publish --version " + version)
         return
     deadline = time.monotonic() + args.wait_minutes * 60
     while True:
@@ -362,7 +362,7 @@ def publish(args):
             if processing in ("FAILED", "INVALID"):
                 raise RuntimeError("Apple processing failed: " + processing)
         if time.monotonic() >= deadline:
-            raise RuntimeError("Processing timed out; upload preserved. Resume release submit later")
+            raise RuntimeError("Processing timed out; upload preserved. Resume with ./run.sh release " + args.action + " --version " + version)
         print("Waiting for Apple processing…", flush=True)
         time.sleep(15)
     receipt["build_id"] = build["id"]
@@ -420,6 +420,21 @@ def finish_submission(args, manifest, directory, receipt, audit):
         save_submission(manifest, directory, receipt, audit)
 
 
+def verify_uploaded_validation(receipt):
+    identity = receipt.get("native_fingerprint")
+    if not identity or native_validation.fingerprint(ROOT) != identity:
+        raise RuntimeError("Native inputs differ from the validated upload; inspect release evidence before website publication")
+    path = private_root() / "validation" / (identity + ".json")
+    evidence = json.loads(path.read_text()) if path.exists() else {}
+    if evidence.get("status") != "passed" or evidence.get("fingerprint") != identity:
+        raise RuntimeError("Matching passed native validation is required before website publication")
+    for suite in ("Teika", "TeikaWatch"):
+        result = evidence.get("suites", {}).get(suite, {})
+        native_validation.counts({"passedTests": result.get("passed"), "failedTests": result.get("failed"),
+                                  "skippedTests": result.get("skipped")})
+    print("Reusing uploaded build's matching native validation " + identity[:12], flush=True)
+
+
 def website(args, version=None):
     version = version or select_version(args.version)
     directory = release_path(version)
@@ -454,7 +469,7 @@ def website(args, version=None):
             run(["swift", "test", "--disable-sandbox", "--package-path", "tools/ReleaseTools"])
             run(["npm", "run", "lint"], cwd=ROOT / "site")
             run(["npm", "run", "build"], cwd=ROOT / "site")
-            native_validation.validate(ROOT, private_root())
+            verify_uploaded_validation(receipt)
             # gh exits 8 when no checks are configured; distinguish that from failed checks.
             checks = json.loads(run(["gh", "pr", "view", str(pr["number"]), "--json", "statusCheckRollup"], capture=True))["statusCheckRollup"]
             if any(item.get("conclusion", item.get("state")) not in ("SUCCESS", "NEUTRAL", "SKIPPED") for item in checks):
@@ -549,8 +564,8 @@ def main():
     changes.add_argument("--json", action="store_true")
     changes.add_argument("--base", help="Require a ledger change compared with this Git base")
     changes.add_argument("--no-release-impact", action="store_true", help="PR explicitly explains why no ledger entry is needed")
-    release = commands.add_parser("release")
-    release.add_argument("action", choices=("doctor", "prepare", "publish", "upload", "submit", "status", "website", "abandon", "validate", "screenshots"))
+    release = commands.add_parser("release", description="Use publish for the complete prepared release: upload, processing, metadata, screenshots, App Review submission, and website publication. Rerun publish to resume confirmed progress.")
+    release.add_argument("action", choices=("doctor", "prepare", "publish", "upload", "submit", "status", "website", "abandon", "validate", "screenshots"), help="publish runs the complete release; upload and submit run individual stages only")
     release.add_argument("--version")
     release.add_argument("--changes", help="Comma-separated pending change IDs; default: all")
     release.add_argument("--dry-run", action="store_true")

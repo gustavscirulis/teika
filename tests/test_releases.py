@@ -284,6 +284,40 @@ class ReleaseTests(unittest.TestCase):
             release.website(args)
         run.assert_not_called()
 
+    def test_website_reuses_exact_uploaded_native_evidence_without_resolving(self):
+        evidence = {"fingerprint": "native", "status": "passed", "suites": {
+            "Teika": {"passed": 59, "failed": 0, "skipped": 0},
+            "TeikaWatch": {"passed": 6, "failed": 0, "skipped": 0}}}
+        release.write_json(self.private / "validation/native.json", evidence)
+        with patch.object(native_validation, "fingerprint", return_value="native"), \
+             patch.object(native_validation, "validate") as validate, patch.object(release, "run") as run, \
+             contextlib.redirect_stdout(io.StringIO()):
+            release.verify_uploaded_validation({"native_fingerprint": "native"})
+        validate.assert_not_called()
+        run.assert_not_called()
+
+    def test_website_blocks_changed_missing_or_untrustworthy_native_evidence(self):
+        passed = {"passed": 59, "failed": 0, "skipped": 0}
+        invalid = [None, {"fingerprint": "native", "status": "failed-or-incomplete", "suites": {}},
+                   {"fingerprint": "older", "status": "passed", "suites": {}},
+                   {"fingerprint": "native", "status": "passed", "suites": {"Teika": passed}}]
+        for counts in ({"passed": 0, "failed": 0, "skipped": 0},
+                       {"passed": 6, "failed": 1, "skipped": 0},
+                       {"passed": 6, "failed": 0, "skipped": 1}):
+            invalid.append({"fingerprint": "native", "status": "passed",
+                            "suites": {"Teika": passed, "TeikaWatch": counts}})
+        path = self.private / "validation/native.json"
+        with patch.object(native_validation, "fingerprint", return_value="native"):
+            for evidence in invalid:
+                with self.subTest(evidence=evidence):
+                    if evidence is None: path.unlink(missing_ok=True)
+                    else: release.write_json(path, evidence)
+                    with self.assertRaises(RuntimeError):
+                        release.verify_uploaded_validation({"native_fingerprint": "native"})
+            for receipt in ({}, {"native_fingerprint": "changed"}):
+                with self.subTest(receipt=receipt), self.assertRaisesRegex(RuntimeError, "Native inputs differ"):
+                    release.verify_uploaded_validation(receipt)
+
     def test_changed_notes_block_receipt_resume(self):
         directory = self.prepare()
         receipt = {"version": "1.0.4", "build": 10, "content_sha256": release.content_hash(directory), "native_source_fingerprint": "native", "uploaded": True}

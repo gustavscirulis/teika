@@ -27,11 +27,15 @@ against `f420a77..d5344f9` (PR #9).
 
 ## Fixed
 
+- [store-description-and-screenshot-order] Explain saved-note editing and optional Apple Reminders or Things tasks in the main App Store description, and show Settings last in the iPhone and iPad screenshot sets.
+
 - [task-delivery-recovery] Recover failed deliveries with Retry or Skip, and require confirmation before retrying an unconfirmed task to avoid duplicates.
 - [task-description-content] Avoid repeating a complete task title in its description while preserving extra lines, truncated titles, and a marked excerpt for transcripts beyond Things' limit.
 
 ## Internal
 
+- [reuse-upload-validation-for-site] Reuse the uploaded build's exact passed native validation before website publication, checking source, resolved dependencies, Xcode, and positive iOS/Watch counts without resolving packages again.
+- [single-command-release-guidance] Recommend the combined publish command in CLI help, upload completion, timeout recovery, and the normal-Terminal fallback so releases do not require separate upload and submit commands.
 - [submit-before-release-publication] Require verified App Store review submission before merging the release PR or deploying the website, while preserving resumable submission records if website publication fails.
 - [app-store-screenshot-display-type] Use Apple's supported iPhone screenshot display identifier, including when resuming already-reviewed plans, without changing captured images or upload receipts.
 - [opaque-store-screenshot-export] Export fully opaque simulator PNGs as RGB for App Store screenshots, verifying identical pixels and dimensions and rejecting real transparency.

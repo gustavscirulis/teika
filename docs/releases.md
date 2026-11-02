@@ -75,13 +75,17 @@ confirmation requests:
    stays empty for the agent to write. Do not copy the ledger or enumerate its
    supporting implementation, maintenance and documentation details. Edit
    `metadata.json` (name, subtitle, description, keywords, public URLs,
-   copyright and review instructions) to reflect actual behavior. Set `notes_reviewed` and
+   copyright and review instructions) to reflect actual behavior. Integrate the current
+   release features into the opening description and how-it-works steps; review the
+   full description rather than relying on an appended feature paragraph. Set `notes_reviewed` and
    `metadata_reviewed` to true in the manifest after review.
 4. Review the existing store images against the source diff. If any are inaccurate,
    run `./run.sh release screenshots --version 1.2.3`; use `--family iphone|ipad|watch`
    to replace only affected families. This creates dedicated disposable simulators,
    uses debug-only fixture scenes, and saves dimension-checked PNGs and hashes in the
-   release folder. Inspect every PNG before setting `screenshots.json`'s `reviewed`
+   release folder. Lead with the main recording or transcription experience on iPhone and iPad,
+   followed by saved notes; Settings belongs last. Inspect every PNG and the final
+   ordered list before setting `screenshots.json`'s `reviewed`
    to true. If current assets remain accurate, use `mode: "reuse"`, an explanatory
    `reason`, `reviewed: true`, and `sets: []`. This decision is required on every
    release. Original screenshot sets remain in Apple until replacements process.
@@ -119,6 +123,18 @@ reported as blockers, never guessed.
 
 ## Resume, inspect, or abandon
 
+Use one command for a prepared release, including when continuing an interrupted
+attempt:
+
+```sh
+./run.sh release publish --version 1.2.3
+```
+
+It uploads if needed, waits for processing, applies the reviewed listing and
+screenshots, submits for review, then merges the release PR and verifies the
+website. A confirmed upload is reused. `upload` and `submit` are optional commands
+for deliberately running only part of that workflow.
+
 ```sh
 ./run.sh release status --version 1.2.3 --dry-run  # read-only
 ./run.sh release website --version 1.2.3          # retry Git/Vercel publication
@@ -129,7 +145,7 @@ reported as blockers, never guessed.
 ```
 
 Website and Apple checkpoints are independent. A processing timeout or metadata
-failure retains the upload and can resume through `submit`; it never creates another
+failure retains the upload; rerun `publish` to continue without creating another
 build. After separate `upload` and `submit` commands, commit the sanitized submission
 record and run `publish` (or `website`) to merge and deploy; both verify submission
 before any merge. A Git/Vercel failure preserves the successful Apple submission.
@@ -166,10 +182,18 @@ build configuration and Xcode version; marketing/build fields are normalized.
 reuse of an older pass for those inputs. Release archives use the resolved packages
 from validation and fail if native inputs change during archiving.
 
+Before merging the release PR, website publication verifies that the current native
+fingerprint (including resolved dependencies and Xcode) matches the uploaded build's
+receipt and its passed iOS/Watch evidence. It reuses those positive test counts without
+resolving packages again. Missing, changed, failed, or incomplete evidence blocks
+publication.
+
 If Conductor cannot access CoreSimulator or native signing, report the service error
 and preserve all progress. Use one command from a normal Terminal:
-`./run.sh release upload --version 1.2.3`. The agent then inspects its durable logs and
-resumes `submit`; blocked or zero-test runs never count as passing evidence.
+`./run.sh release publish --version 1.2.3`. This continues through submission and
+website publication without a separate `submit` command. The agent then inspects
+the durable logs and Apple read-back; blocked or zero-test runs never count as
+passing evidence.
 
 Screenshot PNGs must be opaque and use a consistent size within each display set.
 The Watch capture uses Series 9 (45mm) for Teika's existing Series 7 display class.
