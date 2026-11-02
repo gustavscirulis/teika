@@ -29,6 +29,7 @@ against `f420a77..d5344f9` (PR #9).
 
 ## Internal
 
+- [settings-navigation-ui-test] Locate the system back control by its identifier so Settings navigation validation also works when iOS places it in a separate toolbar.
 - [export-regression-coverage] Add regression coverage and a macOS validation command for Things/Reminders exports, note persistence, and migration.
 - [autonomous-release-workflow] Track changes and release assignments, author grouped customer-facing notes separately from the full ledger, preserve resumable release evidence, automate App Store metadata and review submission, capture screenshots, and publish website updates through the existing Git deployment.
 

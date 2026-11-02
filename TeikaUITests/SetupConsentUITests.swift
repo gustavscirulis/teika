@@ -63,7 +63,10 @@ final class SetupConsentUITests: XCTestCase {
         keepScreenshot(named: "Settings")
         appPicker.tap()
         app.buttons["Off"].tap()
-        app.navigationBars["Settings"].buttons.firstMatch.tap()
+        // Newer runtimes place the system back control in a separate toolbar.
+        let backButton = app.descendants(matching: .any)["BackButton"].firstMatch
+        XCTAssertTrue(backButton.waitForExistence(timeout: 2))
+        backButton.tap()
         XCTAssertTrue(app.navigationBars["Notes"].waitForExistence(timeout: 2))
     }
 

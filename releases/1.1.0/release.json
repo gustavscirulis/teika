@@ -51,6 +51,11 @@
       "id": "autonomous-release-workflow",
       "group": "Internal",
       "text": "Track changes and release assignments, author grouped customer-facing notes separately from the full ledger, preserve resumable release evidence, automate App Store metadata and review submission, capture screenshots, and publish website updates through the existing Git deployment."
+    },
+    {
+      "id": "settings-navigation-ui-test",
+      "group": "Internal",
+      "text": "Locate the system back control by its identifier so Settings navigation validation also works when iOS places it in a separate toolbar."
     }
   ],
   "notes_reviewed": true,
