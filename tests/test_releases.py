@@ -350,6 +350,31 @@ class ReleaseTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "No compatible iphone"):
                 screenshots.create_simulator(available, "iphone")
 
+    def test_opaque_screenshot_export_preserves_pixels_and_rejects_transparency(self):
+        path = self.root / "capture.png"
+        def chunk(kind, data):
+            return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
+        def png(alpha):
+            return (b"\x89PNG\r\n\x1a\n"
+                    + chunk(b"IHDR", struct.pack(">II", 2, 1) + bytes([8, 6, 0, 0, 0]))
+                    + chunk(b"sRGB", b"\x00")
+                    + chunk(b"IDAT", zlib.compress(bytes([0, 17, 34, 51, alpha, 85, 102, 119, 255])))
+                    + chunk(b"IEND", b""))
+        path.write_bytes(png(255))
+        screenshots.export_opaque_png(path)
+        converted = path.read_bytes()
+        self.assertEqual(struct.unpack(">II", converted[16:24]), (2, 1))
+        self.assertEqual(converted[25], 2)
+        with patch.object(release, "run") as run:
+            screenshots.export_opaque_png(path)
+        run.assert_not_called()
+        original = png(128)
+        path.write_bytes(original)
+        with self.assertRaises(subprocess.CalledProcessError):
+            screenshots.export_opaque_png(path)
+        self.assertEqual(path.read_bytes(), original)
+        self.assertFalse(path.with_name("capture.opaque.png").exists())
+
     def test_dimensions_are_checked_without_resizing(self):
         path = self.root / "capture.png"
         def chunk(kind, data):

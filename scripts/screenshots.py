@@ -71,6 +71,21 @@ def validate_png(path, display):
     return width, height
 
 
+def export_opaque_png(path):
+    """Drop an all-opaque alpha channel without changing dimensions or pixels."""
+    from release import run
+    path = Path(path)
+    data = path.read_bytes()
+    if len(data) < 33 or data[:8] != b"\x89PNG\r\n\x1a\n" or data[25] not in (4, 6):
+        return
+    temporary = path.with_name(path.stem + ".opaque.png")
+    try:
+        run(["swift", Path(__file__).with_name("opaque_screenshot.swift"), path, temporary])
+        temporary.replace(path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
 def capture(root, version, family, dry_run=False):
     from release import logged, run, write_json, release_path
     directory = release_path(version)
@@ -109,6 +124,7 @@ def capture(root, version, family, dry_run=False):
                 time.sleep(3)
                 path = output / (name + "-" + scene + ".png")
                 run(["xcrun", "simctl", "io", udid, "screenshot", path])
+                export_opaque_png(path)
                 validate_png(path, display)
                 files.append({"path": str(path.relative_to(directory)), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()})
             plan["sets"] = [item for item in plan.get("sets", []) if item["display"] != display] + [{"display": display, "files": files}]

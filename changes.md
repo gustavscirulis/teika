@@ -29,6 +29,7 @@ against `f420a77..d5344f9` (PR #9).
 
 ## Internal
 
+- [opaque-store-screenshot-export] Export fully opaque simulator PNGs as RGB for App Store screenshots, verifying identical pixels and dimensions and rejecting real transparency.
 - [compatible-screenshot-simulators] Fall back to a compatible simulator model and runtime when the newest runtime rejects an App Store screenshot device.
 - [settings-navigation-ui-test] Locate the system back control by its identifier so Settings navigation validation also works when iOS places it in a separate toolbar.
 - [export-regression-coverage] Add regression coverage and a macOS validation command for Things/Reminders exports, note persistence, and migration.
