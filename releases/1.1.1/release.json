@@ -2,7 +2,7 @@
   "schema": 1,
   "version": "1.1.1",
   "build": 7,
-  "status": "prepared",
+  "status": "submitted",
   "date": "2026-11-02",
   "locale": "en-US",
   "previous_version_id": "4b196633-f215-4315-9d14-beedba3d95ee",
@@ -34,5 +34,8 @@
     }
   ],
   "notes_reviewed": true,
-  "metadata_reviewed": true
+  "metadata_reviewed": true,
+  "build_id": "0d9f4da8-83b9-4fea-a31c-d0657f39ba68",
+  "version_id": "6e075481-9286-451e-8af4-04686eaa8281",
+  "submission_id": "535667ba-5b74-4640-94c8-9202adb04daa"
 }
