@@ -20,12 +20,8 @@ const STEPS = [
     body: 'One tap starts a recording. It keeps listening until you tap stop, even when you pause to think.',
   },
   {
-    lead: 'Paste it now, or find it later',
-    body: 'Every transcription is copied to your clipboard and saved on your phone. Open a saved note to edit the text; changes save automatically.',
-  },
-  {
-    lead: 'Coming next: turn a thought into a task',
-    body: 'The next release adds Apple Reminders and Things to Notes Settings, so new notes can go straight to your task list. Leave it off when all you need is a note.',
+    lead: 'Paste it, keep it, or make it a task',
+    body: 'Every transcription is copied to your clipboard and saved on your phone. Edit saved notes anytime; changes save automatically. Enable Apple Reminders or Things in Notes Settings to send new notes straight to your task list.',
   },
 ];
 

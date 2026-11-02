@@ -18,8 +18,12 @@
   diff. The ledger is an audit trail, not public copy: omit implementation details,
   tests, tooling and routine documentation work. Maintain authored upcoming summaries
   in `releases/upcoming.json`; never copy raw ledger entries to the website or App
-  Store. Review and commit all prepared content before publishing. Never describe
-  pending features as available in the App Store.
+  Store. Review and commit all prepared content before publishing. At successful
+  review submission, describe the release's features in the present tense across
+  the website and public release copy. Do not add "coming next" labels or Apple
+  approval/availability disclaimers. Routine releases need no approval monitoring
+  or follow-up website copy change; keep Apple's actual state in private evidence
+  and the release manifest.
 - App Store Connect is authoritative for builds and release state. Keep keys,
   reviewer contacts, tokens, archives, and native evidence outside Git. Preserve
   receipts on failure; never erase them to force another upload.
