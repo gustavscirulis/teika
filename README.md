@@ -16,18 +16,18 @@ library.
 
 ## Task app integration
 
-Open **Notes → Settings** (the gear icon) and choose **Things** or **Apple
-Reminders** under **Add notes to**. It defaults to **Off**.
-
-For **Things**, choose **Inbox** or **Today** (the default). Things must be
-installed on the same iPhone or iPad; **Get Things** links to its website.
-It opens briefly to create each task, then returns to Teika. Things may ask
-you to enable Things URLs the first time; no Shortcuts setup or token is needed.
+Open **Notes → Settings** (the gear icon) and choose **Apple Reminders** or
+**Things** under **Add notes to**. It defaults to **Off**.
 
 For **Apple Reminders**, allow access, choose a writable **List**, and select
 **No date** or **Today** (the default). Teika initially selects the system’s
 default reminder list. Reminders are created without leaving Teika. Today uses
 an all-day due date at delivery; Teika adds no explicit alarm.
+
+For **Things**, choose **Inbox** or **Today** (the default). Things must be
+installed on the same iPhone or iPad; **Get Things** links to its website.
+It opens briefly to create each task, then returns to Teika. Things may ask
+you to enable Things URLs the first time; no Shortcuts setup or token is needed.
 
 Each task uses the note’s short title and transcript. Things’ 10,000-character
 notes limit requires an explicitly marked excerpt for longer transcripts;
@@ -51,7 +51,7 @@ it. Unconfirmed deliveries are never automatically resent: check the task app
 before retrying, since a task might already exist.
 
 Exported text is handed directly to the selected app on your device. It may then
-sync through Things Cloud or the account associated with your Reminders list.
+sync through the account associated with your Reminders list or Things Cloud.
 
 ## Privacy
 

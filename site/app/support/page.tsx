@@ -5,7 +5,7 @@ import { CONTACT_EMAIL, MODEL, SOURCE_URL } from '@/lib/site';
 export const metadata: Metadata = {
   title: 'Support',
   description:
-    'Help with recording, saved notes, Things, Apple Reminders, Apple Watch, widgets, and Shortcuts in Teika.',
+    'Help with recording, saved notes, Apple Reminders, Things, Apple Watch, widgets, and Shortcuts in Teika.',
 };
 
 /**
@@ -92,17 +92,20 @@ export default function Support() {
           for release notes; the instructions below cover that upcoming version.
         </p>
         <p>
-          Open the notes library, tap the gear icon, and choose <strong>Things</strong> or{' '}
-          <strong>Apple Reminders</strong> under <strong>Add notes to</strong>. This setting
+          Open the notes library, tap the gear icon, and choose <strong>Apple Reminders</strong> or{' '}
+          <strong>Things</strong> under <strong>Add notes to</strong>. This setting
           starts at <strong>Off</strong>. Only new notes are exported; existing notes and
           later edits stay in Teika without changing their tasks.
         </p>
         <p>
+          For Apple Reminders, allow access, choose a writable list, and select{' '}
+          <strong>No date</strong> or <strong>Today</strong>. Reminders are created without
+          leaving Teika.
+        </p>
+        <p>
           Things must be installed on the same device. Choose <strong>Inbox</strong> or{' '}
           <strong>Today</strong>; Things opens briefly to create the task and returns to
-          Teika. Things may ask you to enable Things URLs the first time. For Reminders,
-          allow access, choose a writable list, and select <strong>No date</strong> or{' '}
-          <strong>Today</strong>. Reminders are created without leaving Teika.
+          Teika. Things may ask you to enable Things URLs the first time.
         </p>
         <p>
           Each task uses the note title and transcript without repeating a complete title
@@ -114,14 +117,14 @@ export default function Support() {
         <h2>What if a task was not added?</h2>
         <p>
           Open Notes Settings and use <strong>Retry</strong> or <strong>Skip this note</strong>.
-          If Teika cannot confirm delivery, check Things or Reminders before retrying:
+          If Teika cannot confirm delivery, check Reminders or Things before retrying:
           the task may already exist. Allow Reminders access or choose another list if
           the original destination is unavailable.
         </p>
         <p>
           Switching task apps affects new notes; waiting notes retain their original app.
           Choosing Off pauses waiting deliveries and excludes notes saved while off.
-          Exported text may sync through Things Cloud or your Reminders account. See the{' '}
+          Exported text may sync through your Reminders account or Things Cloud. See the{' '}
           <a href="/privacy/">privacy policy</a> for details.
         </p>
 
@@ -188,7 +191,7 @@ export default function Support() {
         <h2>Does Teika send my recordings to an AI service?</h2>
         <p>
           No. Transcription runs on your iPhone. Optional task exports hand note text to
-          Things or Apple Reminders, which may sync it through their own services. Hugging Face hosts
+          Apple Reminders or Things, which may sync it through their own services. Hugging Face hosts
           the model files used during the setup download, but it does not receive your
           recordings or perform the transcription. See the{' '}
           <a href="/privacy/">privacy policy</a> for the connection information involved

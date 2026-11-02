@@ -162,11 +162,11 @@ def prepare(args):
         "No account is required. On first launch choose Set Up Transcription, then approve the one-time 0.5 GB model download. "
         "Record with two taps; transcription runs on the iPhone. Saved notes are editable from the notes library. "
         "A paired Apple Watch records after iPhone setup and queues recordings while disconnected. "
-        "In Notes > Settings, Add notes to defaults to Off. Things (installed separately) supports Inbox/Today; "
-        "Apple Reminders requests permission and offers list and No date/Today choices. Only new notes are exported. "
+        "In Notes > Settings, Add notes to defaults to Off. Apple Reminders requests permission and offers list and No date/Today choices; "
+        "Things (installed separately) supports Inbox/Today. Only new notes are exported. "
         "If delivery is unconfirmed, check the destination before retrying to avoid duplicates.")
     if "OPTIONAL TASK INTEGRATIONS" not in metadata["description"]:
-        metadata["description"] += ("\n\nOPTIONAL TASK INTEGRATIONS\nTurn new voice notes into tasks in Things or Apple Reminders. "
+        metadata["description"] += ("\n\nOPTIONAL TASK INTEGRATIONS\nTurn new voice notes into tasks in Apple Reminders or Things. "
                                 "Choose your destination in Notes Settings. Task exports are off until you enable them.")
     metadata.pop("screenshotDisplays", None)
     manifest = {"schema": 1, "version": version, "build": remote["next_build"], "status": "prepared",

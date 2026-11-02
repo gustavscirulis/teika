@@ -13,8 +13,8 @@ SIZES = {
     "APP_WATCH_SERIES_7": {(396, 484)},
 }
 FAMILIES = {
-    "iphone": ("iOS", ["iPhone 17 Pro Max", "iPhone 16 Pro Max"], "Teika", "APP_IPHONE_69", ["recording", "transcript", "notes", "settings"]),
-    "ipad": ("iOS", ["iPad Pro 13-inch (M5)", "iPad Pro 13-inch (M4)", "iPad Pro (12.9-inch) (6th generation)"], "Teika", "APP_IPAD_PRO_3GEN_129", ["transcript", "notes", "settings"]),
+    "iphone": ("iOS", ["iPhone 17 Pro Max", "iPhone 16 Pro Max"], "Teika", "APP_IPHONE_69", ["settings", "recording", "transcript", "notes"]),
+    "ipad": ("iOS", ["iPad Pro 13-inch (M5)", "iPad Pro 13-inch (M4)", "iPad Pro (12.9-inch) (6th generation)"], "Teika", "APP_IPAD_PRO_3GEN_129", ["settings", "transcript", "notes"]),
     "watch": ("watchOS", ["Apple Watch Series 9 (45mm)"], "TeikaWatch", "APP_WATCH_SERIES_7", ["recording", "queued"]),
 }
 

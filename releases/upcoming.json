@@ -8,9 +8,10 @@
         "task-export-privacy",
         "task-export-site-help",
         "task-delivery-recovery",
-        "task-description-content"
+        "task-description-content",
+        "reminders-first-release-presentation"
       ],
-      "text": "Automatically turn new voice notes into tasks in Things or Apple Reminders. Choose your destination in Notes Settings."
+      "text": "Automatically turn new voice notes into tasks in Apple Reminders or Things. Choose your destination in Notes Settings."
     }
   ]
 }

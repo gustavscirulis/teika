@@ -19,6 +19,7 @@ against `f420a77..d5344f9` (PR #9).
 
 ## Changed
 
+- [reminders-first-release-presentation] Lead with Apple Reminders in release notes, store and website descriptions, and the first integration screenshot on iPhone and iPad.
 - [task-export-privacy] Document optional note-text transfers to Things and Apple Reminders, their sync services, permissions, and local delivery tracking.
 - [task-export-site-help] Explain task integrations, delivery recovery, and destination choices on the website and in support documentation.
 

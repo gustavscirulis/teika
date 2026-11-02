@@ -66,6 +66,11 @@
       "id": "opaque-store-screenshot-export",
       "group": "Internal",
       "text": "Export fully opaque simulator PNGs as RGB for App Store screenshots, verifying identical pixels and dimensions and rejecting real transparency."
+    },
+    {
+      "id": "reminders-first-release-presentation",
+      "group": "Changed",
+      "text": "Lead with Apple Reminders in release notes, store and website descriptions, and the first integration screenshot on iPhone and iPad."
     }
   ],
   "notes_reviewed": true,

@@ -34,7 +34,7 @@ struct TeikaApp: App {
         let defaults = capturing ? UserDefaults(suiteName: "teika.release-screenshot")! : .standard
         if capturing {
             defaults.removePersistentDomain(forName: "teika.release-screenshot")
-            defaults.set("things", forKey: "taskExportApp")
+            defaults.set("reminders", forKey: "taskExportApp")
         }
         let store = try! NoteStore(inMemory: capturing, defaults: defaults)
         #else

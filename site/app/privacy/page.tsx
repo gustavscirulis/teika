@@ -17,7 +17,7 @@ export default function Privacy() {
         <p className="lede">
           Teika processes recordings and notes on your devices and does not use a remote
           AI inference service. It does not upload recordings or notes to a Teika server.
-          If you enable task exports, note text is handed to Things or Apple Reminders
+          If you enable task exports, note text is handed to Apple Reminders or Things
           as described below. A user-approved speech-model download connects to Hugging Face, Inc.
           and exposes the limited connection information described below.
         </p>
@@ -58,14 +58,9 @@ export default function Privacy() {
         <h2>Optional task app integration</h2>
         <p>
           The <strong>Add notes to</strong> setting defaults to <strong>Off</strong>. Choosing
-          Things or Apple Reminders sends each new note’s short title and transcript to that
+          Apple Reminders or Things sends each new note’s short title and transcript to that
           app on your device. Audio is never sent to either app, and previously saved notes
           are not exported.
-        </p>
-        <p>
-          Things receives text through its URL scheme and creates tasks in Inbox or Today.
-          Transcripts exceeding Things’ 10,000-character notes limit are shortened with a
-          notice; the complete note remains in Teika.
         </p>
         <p>
           Apple Reminders uses Apple’s EventKit framework and requires your permission to read
@@ -73,6 +68,11 @@ export default function Privacy() {
           saves new reminders there with the complete transcript, either undated or due today.
           Teika does not import your existing reminders. You can revoke access in iOS
           Settings.
+        </p>
+        <p>
+          Things receives text through its URL scheme and creates tasks in Inbox or Today.
+          Transcripts exceeding Things’ 10,000-character notes limit are shortened with a
+          notice; the complete note remains in Teika.
         </p>
         <p>
           Teika stores delivery status, the chosen app, and returned task identifiers locally.
