@@ -19,6 +19,31 @@ FAMILIES = {
 }
 
 
+def create_simulator(available, family):
+    platform, preferred, _, _, _ = FAMILIES[family]
+    runtimes = sorted(
+        [item for item in available["runtimes"] if item.get("isAvailable") and platform in item["identifier"]],
+        key=lambda item: tuple(map(int, item["version"].split("."))), reverse=True)
+    device_types = [item for label in preferred for item in available["devicetypes"] if item["name"] == label]
+    for runtime in runtimes:
+        for device_type in device_types:
+            result = subprocess.run(
+                ["xcrun", "simctl", "create", "Teika release " + family,
+                 device_type["identifier"], runtime["identifier"]],
+                capture_output=True, text=True)
+            if result.returncode == 0:
+                udid = result.stdout.strip()
+                if not udid:
+                    raise RuntimeError("Simulator creation returned no device identifier")
+                print(f"Capturing {device_type['name']} on {runtime['version']}", flush=True)
+                return udid
+            if result.returncode == 147 and "domain=com.apple.CoreSimulator.SimError, code=403" in result.stderr:
+                print(f"Skipping incompatible {device_type['name']} / {runtime['version']}", flush=True)
+                continue
+            raise RuntimeError("Simulator creation failed: " + (result.stderr.strip() or str(result.returncode)))
+    raise RuntimeError(f"No compatible {family} simulator/runtime pair is installed; see scripts/screenshots.py device choices")
+
+
 def validate_png(path, display):
     data = Path(path).read_bytes()
     if len(data) < 33 or data[:8] != b"\x89PNG\r\n\x1a\n" or data[12:16] != b"IHDR":
@@ -63,13 +88,8 @@ def capture(root, version, family, dry_run=False):
     output = directory / "screenshots"
     output.mkdir(exist_ok=True)
     for name in families:
-        platform, preferred, scheme, display, scenes = FAMILIES[name]
-        runtimes = sorted([item for item in available["runtimes"] if item.get("isAvailable") and platform in item["identifier"]],
-                          key=lambda item: tuple(map(int, item["version"].split("."))), reverse=True)
-        device_type = next((item for label in preferred for item in available["devicetypes"] if item["name"] == label), None)
-        if not runtimes or device_type is None:
-            raise RuntimeError(f"Install a supported {name} simulator and runtime; see scripts/screenshots.py device choices")
-        udid = run(["xcrun", "simctl", "create", "Teika release " + name, device_type["identifier"], runtimes[0]["identifier"]], capture=True).strip()
+        platform, _, scheme, display, scenes = FAMILIES[name]
+        udid = create_simulator(available, name)
         try:
             run(["xcrun", "simctl", "boot", udid])
             run(["xcrun", "simctl", "bootstatus", udid, "-b"])

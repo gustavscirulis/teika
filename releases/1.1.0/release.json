@@ -56,6 +56,11 @@
       "id": "settings-navigation-ui-test",
       "group": "Internal",
       "text": "Locate the system back control by its identifier so Settings navigation validation also works when iOS places it in a separate toolbar."
+    },
+    {
+      "id": "compatible-screenshot-simulators",
+      "group": "Internal",
+      "text": "Fall back to a compatible simulator model and runtime when the newest runtime rejects an App Store screenshot device."
     }
   ],
   "notes_reviewed": true,
