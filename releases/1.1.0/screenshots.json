@@ -1,6 +1,45 @@
 {
   "mode": "refresh",
-  "reviewed": false,
-  "reason": "Review UI changes against existing App Store assets",
-  "sets": []
+  "reviewed": true,
+  "reason": "Reviewed all seven current iPhone and iPad captures: Apple Reminders leads each set; recording, transcript and notes screens match the app. Opaque RGB exports preserve captured pixels and dimensions. Existing Watch assets remain accurate because its customer-facing UI is unchanged.",
+  "sets": [
+    {
+      "display": "APP_IPHONE_69",
+      "files": [
+        {
+          "path": "screenshots/iphone-settings.png",
+          "sha256": "6b906de8e21c73e6db2105f3328a13ef7074c7d1025c2eb278d05f042d6c4002"
+        },
+        {
+          "path": "screenshots/iphone-recording.png",
+          "sha256": "26a53a8662cfdbab539be0faea30affc5cf772c6815f260fb8a0f534b71f02aa"
+        },
+        {
+          "path": "screenshots/iphone-transcript.png",
+          "sha256": "b279b1e8a05fa4fe365e607307e4fe2c850cbf2cf73a42ebb74ec6973d270764"
+        },
+        {
+          "path": "screenshots/iphone-notes.png",
+          "sha256": "593f06f39bb1594ef05040edb3be3511776527b61d23fdac0110ad245c561545"
+        }
+      ]
+    },
+    {
+      "display": "APP_IPAD_PRO_3GEN_129",
+      "files": [
+        {
+          "path": "screenshots/ipad-settings.png",
+          "sha256": "cbcd7196192d0a875f599072d280660d592a93baa53feb8373653315ba850944"
+        },
+        {
+          "path": "screenshots/ipad-transcript.png",
+          "sha256": "4938d60edb9c91ecf97798c1681c560de78d4c532b79d2653e0307142aaaf5b3"
+        },
+        {
+          "path": "screenshots/ipad-notes.png",
+          "sha256": "6769e87985d51f907df9ba7d61d43759d6a7a2d7d9f21b75e244777e115728f1"
+        }
+      ]
+    }
+  ]
 }
