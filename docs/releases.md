@@ -57,10 +57,10 @@ between Apple's records, never emitted in helper output or stored in Git.
 
 ## An agent-owned release
 
-An explicit request to release Teika authorizes preparing a release PR, merging it
-after validation, publishing the site immediately, uploading, and submitting for
-review with automatic publication after approval. Installing or testing this tooling
-does not authorize a live release. The agent performs these steps without recurring
+An explicit request to release Teika authorizes preparing a release PR, uploading,
+submitting for review with automatic publication after approval, then merging the
+validated PR and publishing the site after successful submission. Installing or
+testing this tooling does not authorize a live release. The agent performs these steps without recurring
 confirmation requests:
 
 1. Read `changes`, Apple state, and durable receipts. Resume an existing release
@@ -90,15 +90,18 @@ confirmation requests:
 6. Run `./run.sh release publish --version 1.2.3 --dry-run`. It reads Apple and prints
    the exact notes, metadata, build, screenshot policy, and publication policy without
    writing local or remote state. An unreviewed/inconsistent plan fails here.
-7. Run the same publish command without `--dry-run`. It validates the prepared
-   revision, runs/reuses native evidence, checks PR status, merges that exact PR,
-   and verifies Vercel's Production deployment and public home/support/privacy/updates
-   pages. No Vercel CLI token is required. The site publishes immediately; `/updates/`
-   records the version's changes without claiming Apple has approved it.
-8. The command creates a unique signed archive, checks all phone/Watch/widget bundle
+7. Run the same publish command without `--dry-run`. It runs/reuses native evidence,
+   creates a unique signed archive, checks all phone/Watch/widget bundle
    versions and signatures, uploads symbols and the app without changing build
    numbers, waits for processing, updates metadata, uploads reviewed assets, attaches
    the exact build, and submits for App Review with `AFTER_APPROVAL`.
+8. Only after read-back confirms successful App Review submission, the command
+   validates the prepared revision, checks PR status, merges that exact PR, and
+   verifies Vercel's Production deployment and public home/support/privacy/updates
+   pages. No Vercel CLI token is required. The site publishes immediately after
+   submission; do not wait for Apple approval. `/updates/` records the version's
+   changes without claiming Apple has approved it. An upload, screenshot, metadata,
+   or submission failure must leave the release PR unmerged.
 9. Read-back verifies the build, notes, listing, review membership/state, and release
    policy. Keep upcoming-feature labels until Apple confirms distribution; remove
    them when publishing the confirmed distribution record. Commit the sanitized updated release manifest on the release branch and
@@ -124,7 +127,11 @@ reported as blockers, never guessed.
 
 Website and Apple checkpoints are independent. A processing timeout or metadata
 failure retains the upload and can resume through `submit`; it never creates another
-build. The submitted state is not a distribution claim. Apple-confirmed distribution
+build. After separate `upload` and `submit` commands, commit the sanitized submission
+record and run `publish` (or `website`) to merge and deploy; both verify submission
+before any merge. A Git/Vercel failure preserves the successful Apple submission.
+Commit its sanitized record before resuming publication from a clean working tree.
+The submitted state is not a distribution claim. Apple-confirmed distribution
 updates the manifest to `distributed`. Abandoned plans release their selected IDs
 back to pending. Uploaded plans cannot be abandoned by throwing away evidence.
 
