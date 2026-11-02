@@ -420,6 +420,21 @@ def finish_submission(args, manifest, directory, receipt, audit):
         save_submission(manifest, directory, receipt, audit)
 
 
+def verify_uploaded_validation(receipt):
+    identity = receipt.get("native_fingerprint")
+    if not identity or native_validation.fingerprint(ROOT) != identity:
+        raise RuntimeError("Native inputs differ from the validated upload; inspect release evidence before website publication")
+    path = private_root() / "validation" / (identity + ".json")
+    evidence = json.loads(path.read_text()) if path.exists() else {}
+    if evidence.get("status") != "passed" or evidence.get("fingerprint") != identity:
+        raise RuntimeError("Matching passed native validation is required before website publication")
+    for suite in ("Teika", "TeikaWatch"):
+        result = evidence.get("suites", {}).get(suite, {})
+        native_validation.counts({"passedTests": result.get("passed"), "failedTests": result.get("failed"),
+                                  "skippedTests": result.get("skipped")})
+    print("Reusing uploaded build's matching native validation " + identity[:12], flush=True)
+
+
 def website(args, version=None):
     version = version or select_version(args.version)
     directory = release_path(version)
@@ -454,7 +469,7 @@ def website(args, version=None):
             run(["swift", "test", "--disable-sandbox", "--package-path", "tools/ReleaseTools"])
             run(["npm", "run", "lint"], cwd=ROOT / "site")
             run(["npm", "run", "build"], cwd=ROOT / "site")
-            native_validation.validate(ROOT, private_root())
+            verify_uploaded_validation(receipt)
             # gh exits 8 when no checks are configured; distinguish that from failed checks.
             checks = json.loads(run(["gh", "pr", "view", str(pr["number"]), "--json", "statusCheckRollup"], capture=True))["statusCheckRollup"]
             if any(item.get("conclusion", item.get("state")) not in ("SUCCESS", "NEUTRAL", "SKIPPED") for item in checks):

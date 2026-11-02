@@ -34,6 +34,7 @@ against `f420a77..d5344f9` (PR #9).
 
 ## Internal
 
+- [reuse-upload-validation-for-site] Reuse the uploaded build's exact passed native validation before website publication, checking source, resolved dependencies, Xcode, and positive iOS/Watch counts without resolving packages again.
 - [single-command-release-guidance] Recommend the combined publish command in CLI help, upload completion, timeout recovery, and the normal-Terminal fallback so releases do not require separate upload and submit commands.
 - [submit-before-release-publication] Require verified App Store review submission before merging the release PR or deploying the website, while preserving resumable submission records if website publication fails.
 - [app-store-screenshot-display-type] Use Apple's supported iPhone screenshot display identifier, including when resuming already-reviewed plans, without changing captured images or upload receipts.

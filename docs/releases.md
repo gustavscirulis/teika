@@ -182,6 +182,12 @@ build configuration and Xcode version; marketing/build fields are normalized.
 reuse of an older pass for those inputs. Release archives use the resolved packages
 from validation and fail if native inputs change during archiving.
 
+Before merging the release PR, website publication verifies that the current native
+fingerprint (including resolved dependencies and Xcode) matches the uploaded build's
+receipt and its passed iOS/Watch evidence. It reuses those positive test counts without
+resolving packages again. Missing, changed, failed, or incomplete evidence blocks
+publication.
+
 If Conductor cannot access CoreSimulator or native signing, report the service error
 and preserve all progress. Use one command from a normal Terminal:
 `./run.sh release publish --version 1.2.3`. This continues through submission and
