@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "version": "1.1.0",
+  "build": 6,
+  "status": "prepared",
+  "date": "2026-11-02",
+  "locale": "en-US",
+  "previous_version_id": "cbf2d716-5b3c-4982-a2f1-ce337d7e9d84",
+  "changes": [
+    {
+      "id": "automatic-task-exports",
+      "group": "Added",
+      "text": "Optionally turn each new voice note into a task in Things or Apple Reminders; existing notes and later edits are not exported."
+    },
+    {
+      "id": "task-export-settings",
+      "group": "Added",
+      "text": "Choose Off, Things, or Apple Reminders in Notes Settings, with Things Inbox/Today and Reminders list and No date/Today controls."
+    },
+    {
+      "id": "persistent-task-delivery",
+      "group": "Added",
+      "text": "Keep delivery progress for iPhone and Watch notes, with background Watch notes waiting until Teika is open and idle."
+    },
+    {
+      "id": "task-export-privacy",
+      "group": "Changed",
+      "text": "Document optional note-text transfers to Things and Apple Reminders, their sync services, permissions, and local delivery tracking."
+    },
+    {
+      "id": "task-export-site-help",
+      "group": "Changed",
+      "text": "Explain task integrations, delivery recovery, and destination choices on the website and in support documentation."
+    },
+    {
+      "id": "task-delivery-recovery",
+      "group": "Fixed",
+      "text": "Recover failed deliveries with Retry or Skip, and require confirmation before retrying an unconfirmed task to avoid duplicates."
+    },
+    {
+      "id": "task-description-content",
+      "group": "Fixed",
+      "text": "Avoid repeating a complete task title in its description while preserving extra lines, truncated titles, and a marked excerpt for transcripts beyond Things' limit."
+    },
+    {
+      "id": "export-regression-coverage",
+      "group": "Internal",
+      "text": "Add regression coverage and a macOS validation command for Things/Reminders exports, note persistence, and migration."
+    },
+    {
+      "id": "autonomous-release-workflow",
+      "group": "Internal",
+      "text": "Track changes and release assignments, author grouped customer-facing notes separately from the full ledger, preserve resumable release evidence, automate App Store metadata and review submission, capture screenshots, and publish website updates through the existing Git deployment."
+    }
+  ],
+  "notes_reviewed": true,
+  "metadata_reviewed": true
+}
