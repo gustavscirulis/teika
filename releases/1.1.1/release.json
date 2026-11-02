@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "version": "1.1.1",
+  "build": 7,
+  "status": "prepared",
+  "date": "2026-11-02",
+  "locale": "en-US",
+  "previous_version_id": "4b196633-f215-4315-9d14-beedba3d95ee",
+  "changes": [
+    {
+      "id": "concise-note-task-site-copy",
+      "group": "Changed",
+      "text": "Shorten the homepage's combined saved-note and task-export description."
+    },
+    {
+      "id": "current-release-site-copy",
+      "group": "Changed",
+      "text": "Describe submitted features in the present tense and combine clipboard, saved-note editing, and optional task exports into one homepage step; make this the default release copy policy."
+    },
+    {
+      "id": "store-description-and-screenshot-order",
+      "group": "Fixed",
+      "text": "Explain saved-note editing and optional Apple Reminders or Things tasks in the main App Store description, and show Settings last in the iPhone and iPad screenshot sets."
+    },
+    {
+      "id": "submit-before-release-publication",
+      "group": "Internal",
+      "text": "Require verified App Store review submission before merging the release PR or deploying the website, while preserving resumable submission records if website publication fails."
+    },
+    {
+      "id": "app-store-screenshot-display-type",
+      "group": "Internal",
+      "text": "Use Apple's supported iPhone screenshot display identifier, including when resuming already-reviewed plans, without changing captured images or upload receipts."
+    }
+  ],
+  "notes_reviewed": true,
+  "metadata_reviewed": true
+}

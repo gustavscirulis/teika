@@ -27,6 +27,8 @@ against `f420a77..d5344f9` (PR #9).
 
 ## Fixed
 
+- [store-description-and-screenshot-order] Explain saved-note editing and optional Apple Reminders or Things tasks in the main App Store description, and show Settings last in the iPhone and iPad screenshot sets.
+
 - [task-delivery-recovery] Recover failed deliveries with Retry or Skip, and require confirmation before retrying an unconfirmed task to avoid duplicates.
 - [task-description-content] Avoid repeating a complete task title in its description while preserving extra lines, truncated titles, and a marked excerpt for transcripts beyond Things' limit.
 

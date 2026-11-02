@@ -12,6 +12,12 @@
         "reminders-first-release-presentation"
       ],
       "text": "Automatically turn new voice notes into tasks in Apple Reminders or Things. Choose your destination in Notes Settings."
+    },
+    {
+      "changes": [
+        "store-description-and-screenshot-order"
+      ],
+      "text": "Updated App Store details and previews for saved voice notes and optional tasks in Apple Reminders or Things."
     }
   ]
 }

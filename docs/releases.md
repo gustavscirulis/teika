@@ -75,13 +75,17 @@ confirmation requests:
    stays empty for the agent to write. Do not copy the ledger or enumerate its
    supporting implementation, maintenance and documentation details. Edit
    `metadata.json` (name, subtitle, description, keywords, public URLs,
-   copyright and review instructions) to reflect actual behavior. Set `notes_reviewed` and
+   copyright and review instructions) to reflect actual behavior. Integrate the current
+   release features into the opening description and how-it-works steps; review the
+   full description rather than relying on an appended feature paragraph. Set `notes_reviewed` and
    `metadata_reviewed` to true in the manifest after review.
 4. Review the existing store images against the source diff. If any are inaccurate,
    run `./run.sh release screenshots --version 1.2.3`; use `--family iphone|ipad|watch`
    to replace only affected families. This creates dedicated disposable simulators,
    uses debug-only fixture scenes, and saves dimension-checked PNGs and hashes in the
-   release folder. Inspect every PNG before setting `screenshots.json`'s `reviewed`
+   release folder. Lead with the main recording or transcription experience on iPhone and iPad,
+   followed by saved notes; Settings belongs last. Inspect every PNG and the final
+   ordered list before setting `screenshots.json`'s `reviewed`
    to true. If current assets remain accurate, use `mode: "reuse"`, an explanatory
    `reason`, `reviewed: true`, and `sets: []`. This decision is required on every
    release. Original screenshot sets remain in Apple until replacements process.
