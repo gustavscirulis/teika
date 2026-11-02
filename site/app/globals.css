@@ -34,7 +34,7 @@
   /* Measured. The close section subtracts this to fill the viewport exactly, so
      it must never exceed the real footer height: under-estimating just makes the
      close taller than needed, while over-estimating lets the previous section
-     back on screen. The footer's two rows wrap into three below 355px. */
+     back on screen. The footer's two rows wrap into three below 410px. */
   --footer-h: 170px;
 
   --orb-dim: 0;
@@ -560,7 +560,7 @@ main {
 }
 
 /* Below the wrap point the footer stacks to three rows. */
-@media (max-width: 350px) {
+@media (max-width: 410px) {
   :root {
     --footer-h: 207px;
   }

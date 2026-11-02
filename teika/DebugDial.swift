@@ -51,6 +51,16 @@ struct DebugConfig: Codable, Equatable {
 /// Fixed, value-only presentation data for App Store captures. None of these notes are
 /// SwiftData models, so screenshot mode cannot insert, delete, or alter the real library.
 enum AppStoreScreenshotContent {
+    /// Only the dedicated simulator capture command supplies this argument.
+    /// All launch hooks and sample content are compiled out of Release builds.
+    static var launchScene: String? {
+        let args = ProcessInfo.processInfo.arguments
+        guard let index = args.firstIndex(of: "-teika-release-screenshot"),
+              args.indices.contains(index + 1),
+              ["recording", "transcript", "notes", "settings"].contains(args[index + 1]) else { return nil }
+        return args[index + 1]
+    }
+
     struct SampleNote: Identifiable {
         let id: Int
         let text: String

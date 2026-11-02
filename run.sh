@@ -3,6 +3,12 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
+# Deterministic release commands bypass the interactive pickers and remembered
+# destination files. In particular, --dry-run must not write picker state.
+case "${1:-}" in
+  release|changes) exec python3 -B scripts/release.py "$@" ;;
+esac
+
 DERIVED_DATA="$PWD/DerivedData"
 STATE_FILE="$PWD/.run-last-destination"
 TARGET_STATE_FILE="$PWD/.run-last-target"
@@ -53,6 +59,8 @@ ${BOLD}Usage${RESET}
   ./run.sh appstore [mode]      Archive or upload to App Store Connect
   ./run.sh archive              Shorthand for: appstore archive
   ./run.sh upload               Shorthand for: appstore upload
+  ./run.sh changes              Show pending changes and release assignments
+  ./run.sh release --help       Release preparation, publishing and recovery
   ./run.sh <destination>        Shorthand for: app <destination>
   ./run.sh --help               This text
 

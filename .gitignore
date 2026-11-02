@@ -39,3 +39,8 @@ build/
 # run.sh remembered destination and target
 .run-last-destination
 .run-last-target
+
+# Python checks and private release artifacts
+__pycache__/
+*.pyc
+releases/*/screenshots/*-build.log
