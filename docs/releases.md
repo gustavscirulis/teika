@@ -99,12 +99,15 @@ confirmation requests:
    validates the prepared revision, checks PR status, merges that exact PR, and
    verifies Vercel's Production deployment and public home/support/privacy/updates
    pages. No Vercel CLI token is required. The site publishes immediately after
-   submission; do not wait for Apple approval. `/updates/` records the version's
-   changes without claiming Apple has approved it. An upload, screenshot, metadata,
-   or submission failure must leave the release PR unmerged.
+   submission; do not wait for Apple approval. Describe the release's features in
+   the present tense across the homepage, support and release notes. Do not add
+   "coming next" labels or Apple approval/availability disclaimers. An upload,
+   screenshot, metadata, or submission failure must leave the release PR unmerged.
 9. Read-back verifies the build, notes, listing, review membership/state, and release
-   policy. Keep upcoming-feature labels until Apple confirms distribution; remove
-   them when publishing the confirmed distribution record. Commit the sanitized updated release manifest on the release branch and
+   policy. Routine release publication finishes after successful submission and
+   website verification; no approval monitoring or follow-up copy change is needed.
+   Keep Apple's actual state in the manifest and private evidence. Commit the
+   sanitized updated release manifest on the release branch and
    update its PR/public record as appropriate. Keep Conductor on the release branch;
    do not rename it or switch to another workspace's checkout.
 

@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { CONTACT_EMAIL, MODEL, SOURCE_URL } from '@/lib/site';
 
 export const metadata: Metadata = {
@@ -87,10 +86,6 @@ export default function Support() {
         </p>
 
         <h2>Can new notes become tasks automatically?</h2>
-        <p>
-          Task integrations are coming in the next release. Follow <Link href="/updates/">Updates</Link>{' '}
-          for release notes; the instructions below cover that upcoming version.
-        </p>
         <p>
           Open the notes library, tap the gear icon, and choose <strong>Apple Reminders</strong> or{' '}
           <strong>Things</strong> under <strong>Add notes to</strong>. This setting

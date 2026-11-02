@@ -36,9 +36,11 @@ is checked against the app source or the model card — see `../PRODUCT.md`,
 ## Deploying
 
 Production already uses the Vercel Git integration. Release requests merge a
-validated release PR to `main` and verify its Production deployment immediately,
-without waiting for Apple approval. The release command records this separately
-from App Store upload/submission; see `../docs/releases.md`.
+validated release PR to `main` after successful App Review submission and verify
+its Production deployment immediately, without waiting for Apple approval.
+Public copy describes the submitted features in the present tense, with no
+approval-dependent labels or later copy update. The release command records this
+separately from App Store upload/submission; see `../docs/releases.md`.
 
 `lib/releases.json` contains authored release notes and grouped upcoming summaries
 from `../releases/upcoming.json`. Raw change-ledger details are never published.

@@ -3,7 +3,7 @@ import releases from '@/lib/releases.json';
 
 export const metadata: Metadata = {
   title: 'Updates',
-  description: 'What is new in Teika, and what we are working on next.',
+  description: 'The latest improvements to Teika.',
 };
 
 export default function Updates() {
@@ -12,10 +12,6 @@ export default function Updates() {
       <div className="shell">
         <h1>Updates</h1>
         <p className="lede">Small improvements for thoughts worth keeping.</p>
-        <p>
-          Release notes are posted when an update is prepared. App Store availability
-          follows Apple&rsquo;s review; check the App Store for the version available now.
-        </p>
 
         {releases.pending.length > 0 && (
           <section aria-labelledby="in-development">
