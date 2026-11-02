@@ -123,6 +123,18 @@ reported as blockers, never guessed.
 
 ## Resume, inspect, or abandon
 
+Use one command for a prepared release, including when continuing an interrupted
+attempt:
+
+```sh
+./run.sh release publish --version 1.2.3
+```
+
+It uploads if needed, waits for processing, applies the reviewed listing and
+screenshots, submits for review, then merges the release PR and verifies the
+website. A confirmed upload is reused. `upload` and `submit` are optional commands
+for deliberately running only part of that workflow.
+
 ```sh
 ./run.sh release status --version 1.2.3 --dry-run  # read-only
 ./run.sh release website --version 1.2.3          # retry Git/Vercel publication
@@ -133,7 +145,7 @@ reported as blockers, never guessed.
 ```
 
 Website and Apple checkpoints are independent. A processing timeout or metadata
-failure retains the upload and can resume through `submit`; it never creates another
+failure retains the upload; rerun `publish` to continue without creating another
 build. After separate `upload` and `submit` commands, commit the sanitized submission
 record and run `publish` (or `website`) to merge and deploy; both verify submission
 before any merge. A Git/Vercel failure preserves the successful Apple submission.
@@ -172,8 +184,10 @@ from validation and fail if native inputs change during archiving.
 
 If Conductor cannot access CoreSimulator or native signing, report the service error
 and preserve all progress. Use one command from a normal Terminal:
-`./run.sh release upload --version 1.2.3`. The agent then inspects its durable logs and
-resumes `submit`; blocked or zero-test runs never count as passing evidence.
+`./run.sh release publish --version 1.2.3`. This continues through submission and
+website publication without a separate `submit` command. The agent then inspects
+the durable logs and Apple read-back; blocked or zero-test runs never count as
+passing evidence.
 
 Screenshot PNGs must be opaque and use a consistent size within each display set.
 The Watch capture uses Series 9 (45mm) for Teika's existing Series 7 display class.

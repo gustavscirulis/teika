@@ -347,9 +347,9 @@ def publish(args):
         receipt["uploaded"] = True
         write_json(receipt_path, receipt)
     if not receipt.get("uploaded"):
-        raise RuntimeError("No confirmed upload. Run release upload first")
+        raise RuntimeError("No confirmed upload. Run release publish to upload and submit, or release upload for upload only")
     if args.action == "upload":
-        print("Upload confirmed. Resume with ./run.sh release submit --version " + version)
+        print("Upload confirmed. Complete the release with ./run.sh release publish --version " + version)
         return
     deadline = time.monotonic() + args.wait_minutes * 60
     while True:
@@ -362,7 +362,7 @@ def publish(args):
             if processing in ("FAILED", "INVALID"):
                 raise RuntimeError("Apple processing failed: " + processing)
         if time.monotonic() >= deadline:
-            raise RuntimeError("Processing timed out; upload preserved. Resume release submit later")
+            raise RuntimeError("Processing timed out; upload preserved. Resume with ./run.sh release " + args.action + " --version " + version)
         print("Waiting for Apple processing…", flush=True)
         time.sleep(15)
     receipt["build_id"] = build["id"]
@@ -549,8 +549,8 @@ def main():
     changes.add_argument("--json", action="store_true")
     changes.add_argument("--base", help="Require a ledger change compared with this Git base")
     changes.add_argument("--no-release-impact", action="store_true", help="PR explicitly explains why no ledger entry is needed")
-    release = commands.add_parser("release")
-    release.add_argument("action", choices=("doctor", "prepare", "publish", "upload", "submit", "status", "website", "abandon", "validate", "screenshots"))
+    release = commands.add_parser("release", description="Use publish for the complete prepared release: upload, processing, metadata, screenshots, App Review submission, and website publication. Rerun publish to resume confirmed progress.")
+    release.add_argument("action", choices=("doctor", "prepare", "publish", "upload", "submit", "status", "website", "abandon", "validate", "screenshots"), help="publish runs the complete release; upload and submit run individual stages only")
     release.add_argument("--version")
     release.add_argument("--changes", help="Comma-separated pending change IDs; default: all")
     release.add_argument("--dry-run", action="store_true")
