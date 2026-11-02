@@ -239,10 +239,11 @@ def screenshot_plan(directory):
         return plan
     if plan.get("mode") != "refresh" or not plan.get("sets"):
         raise RuntimeError("Capture screenshots or explicitly review reuse before submission")
-    from screenshots import validate_png
+    from screenshots import canonical_display, validate_png
     displays = set()
     for group in plan["sets"]:
-        display = group["display"]
+        display = canonical_display(group["display"])
+        group["display"] = display
         if display in displays or not 1 <= len(group["files"]) <= 10:
             raise RuntimeError("Duplicate display or invalid screenshot count")
         displays.add(display)

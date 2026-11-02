@@ -8,12 +8,12 @@ import time
 
 # Apple's supported portrait sizes for these display classes. Never resize captures.
 SIZES = {
-    "APP_IPHONE_69": {(1320, 2868), (1290, 2796), (1260, 2736)},
+    "APP_IPHONE_67": {(1320, 2868), (1290, 2796), (1260, 2736)},
     "APP_IPAD_PRO_3GEN_129": {(2048, 2732), (2064, 2752)},
     "APP_WATCH_SERIES_7": {(396, 484)},
 }
 FAMILIES = {
-    "iphone": ("iOS", ["iPhone 17 Pro Max", "iPhone 16 Pro Max"], "Teika", "APP_IPHONE_69", ["settings", "recording", "transcript", "notes"]),
+    "iphone": ("iOS", ["iPhone 17 Pro Max", "iPhone 16 Pro Max"], "Teika", "APP_IPHONE_67", ["settings", "recording", "transcript", "notes"]),
     "ipad": ("iOS", ["iPad Pro 13-inch (M5)", "iPad Pro 13-inch (M4)", "iPad Pro (12.9-inch) (6th generation)"], "Teika", "APP_IPAD_PRO_3GEN_129", ["settings", "transcript", "notes"]),
     "watch": ("watchOS", ["Apple Watch Series 9 (45mm)"], "TeikaWatch", "APP_WATCH_SERIES_7", ["recording", "queued"]),
 }
@@ -44,7 +44,14 @@ def create_simulator(available, family):
     raise RuntimeError(f"No compatible {family} simulator/runtime pair is installed; see scripts/screenshots.py device choices")
 
 
+def canonical_display(display):
+    # Apple's API retains APP_IPHONE_67 for the current 6.9-inch screenshot slot.
+    # Keep already-reviewed plans readable without changing their receipt hashes.
+    return "APP_IPHONE_67" if display == "APP_IPHONE_69" else display
+
+
 def validate_png(path, display):
+    display = canonical_display(display)
     data = Path(path).read_bytes()
     if len(data) < 33 or data[:8] != b"\x89PNG\r\n\x1a\n" or data[12:16] != b"IHDR":
         raise RuntimeError("Invalid screenshot PNG: " + str(path))
@@ -127,7 +134,7 @@ def capture(root, version, family, dry_run=False):
                 export_opaque_png(path)
                 validate_png(path, display)
                 files.append({"path": str(path.relative_to(directory)), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()})
-            plan["sets"] = [item for item in plan.get("sets", []) if item["display"] != display] + [{"display": display, "files": files}]
+            plan["sets"] = [item for item in plan.get("sets", []) if canonical_display(item["display"]) != display] + [{"display": display, "files": files}]
             write_json(plan_path, plan)
         finally:
             subprocess.run(["xcrun", "simctl", "shutdown", udid], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

@@ -383,9 +383,29 @@ class ReleaseTests(unittest.TestCase):
             return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">II", 1320, 2868) + bytes([8, color, 0, 0, 0])) + chunk(b"IEND", b"")
         path.write_bytes(png(2))
         self.assertEqual(screenshots.validate_png(path, "APP_IPHONE_69"), (1320, 2868))
+        self.assertEqual(screenshots.validate_png(path, "APP_IPHONE_67"), (1320, 2868))
         with self.assertRaises(RuntimeError): screenshots.validate_png(path, "APP_WATCH_SERIES_7")
         path.write_bytes(png(6))
         with self.assertRaisesRegex(RuntimeError, "opaque"): screenshots.validate_png(path, "APP_IPHONE_69")
+
+    def test_legacy_screenshot_display_resumes_without_changing_reviewed_content(self):
+        directory = self.prepare()
+        image = directory / "phone.png"
+        def chunk(kind, data):
+            return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
+        image.write_bytes(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">II", 1320, 2868) + bytes([8, 2, 0, 0, 0])) + chunk(b"IEND", b""))
+        group = {"display": "APP_IPHONE_69", "files": [{"path": "phone.png", "sha256": hashlib.sha256(image.read_bytes()).hexdigest()}]}
+        release.write_json(directory / "screenshots.json", {"mode": "refresh", "reviewed": True, "reason": "Reviewed capture", "sets": [group]})
+        before = release.content_hash(directory)
+        plan = release.screenshot_plan(directory)
+        self.assertEqual(plan["sets"][0]["display"], "APP_IPHONE_67")
+        self.assertEqual(release.content_hash(directory), before)
+        self.assertEqual(screenshots.FAMILIES["iphone"][3], "APP_IPHONE_67")
+        plan = json.loads((directory / "screenshots.json").read_text())
+        plan["sets"].append(dict(group, display="APP_IPHONE_67"))
+        release.write_json(directory / "screenshots.json", plan)
+        with self.assertRaisesRegex(RuntimeError, "Duplicate display"):
+            release.screenshot_plan(directory)
 
     def test_real_backfill_has_expected_entries_and_baseline(self):
         items = ledger.entries(REPO)
