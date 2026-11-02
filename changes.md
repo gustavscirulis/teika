@@ -19,6 +19,7 @@ against `f420a77..d5344f9` (PR #9).
 
 ## Changed
 
+- [concise-note-task-site-copy] Shorten the homepage's combined saved-note and task-export description.
 - [current-release-site-copy] Describe submitted features in the present tense and combine clipboard, saved-note editing, and optional task exports into one homepage step; make this the default release copy policy.
 - [reminders-first-release-presentation] Lead with Apple Reminders in release notes, store and website descriptions, and the first integration screenshot on iPhone and iPad.
 - [task-export-privacy] Document optional note-text transfers to Things and Apple Reminders, their sync services, permissions, and local delivery tracking.
