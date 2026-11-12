@@ -5,6 +5,7 @@ struct NoteDetailView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(ObsidianExporter.self) private var obsidian: ObsidianExporter?
     @FocusState private var isEditing: Bool
     @State private var didCopy = false
     @State private var isDeleting = false
@@ -58,12 +59,19 @@ struct NoteDetailView: View {
                 .disabled(!canEditNote)
             }
         }
+        .safeAreaInset(edge: .bottom) {
+            if canEditNote, let obsidian, obsidian.isEnabled {
+                VaultStatusBar(note: note, obsidian: obsidian)
+            }
+        }
         .onDisappear {
             saveChanges()
+            Task { await obsidian?.flush() }
         }
         .onChange(of: scenePhase) { _, phase in
             if phase != .active {
                 saveChanges()
+                Task { await obsidian?.flush() }
             }
         }
         .alert("Couldn’t save changes", isPresented: $showsSaveError) {
@@ -87,6 +95,7 @@ struct NoteDetailView: View {
                 guard canEditNote, note.text != text else { return }
                 note.text = text
                 saveChanges()
+                obsidian?.noteEdited(note)
             }
         )
     }
@@ -100,6 +109,44 @@ struct NoteDetailView: View {
             // Keep the model's unsaved text intact so a retry can persist it.
             showsSaveError = true
         }
+    }
+}
+
+/// Where this note stands in the vault, and a way out when Obsidian changed the file.
+private struct VaultStatusBar: View {
+    let note: Note
+    let obsidian: ObsidianExporter
+
+    var body: some View {
+        HStack(spacing: 8) {
+            switch note.vaultState {
+            case .saved?, .pending?:
+                Image(systemName: "checkmark.circle")
+                Text(note.vaultPath.map { ($0 as NSString).lastPathComponent } ?? "Saving to Obsidian…")
+                    .lineLimit(1).truncationMode(.middle)
+            case .editedElsewhere?:
+                Image(systemName: "exclamationmark.circle")
+                Text("Edited in Obsidian. Teika won’t overwrite it.")
+                Spacer(minLength: 0)
+                Button("Save as new") { obsidian.saveAsNewNote(note) }
+            case .missing?:
+                Image(systemName: "exclamationmark.circle")
+                Text("Moved or deleted in Obsidian.")
+                Spacer(minLength: 0)
+                Button("Save as new") { obsidian.saveAsNewNote(note) }
+            case .failed?:
+                Image(systemName: "exclamationmark.circle")
+                Text("Couldn’t save to Obsidian yet.")
+            case nil:
+                Spacer(minLength: 0)
+                Button("Send to Obsidian") { obsidian.send(note) }
+            }
+        }
+        .font(.footnote)
+        .foregroundStyle(.secondary)
+        .padding(.horizontal)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

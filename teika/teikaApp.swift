@@ -18,6 +18,7 @@ struct TeikaApp: App {
     /// view lifecycle for autosave to ride on.
     @State private var store: NoteStore
     @State private var exporter: TaskExportCoordinator
+    @State private var obsidian: ObsidianExporter
     /// Activated at launch for the same reason — a session brought up from a view would
     /// miss every clip delivered to a background launch, which is most of them.
     @State private var watchLink: PhoneWatchLink
@@ -53,14 +54,40 @@ struct TeikaApp: App {
         _transcriber = State(initialValue: transcriber)
         _store = State(initialValue: store)
         _exporter = State(initialValue: exporter)
+        #if DEBUG
+        _obsidian = State(initialValue: Self.makeObsidian(store: store))
+        #else
+        _obsidian = State(initialValue: ObsidianExporter(store: store))
+        #endif
         _watchLink = State(initialValue: link)
         _watchInbox = State(initialValue: inbox)
     }
+
+    #if DEBUG
+    /// `-teika-debug-vault <folder>` points the export at a plain folder, so the whole
+    /// path from a saved note to a file can be tried in the Simulator without the
+    /// document picker. `-teika-debug-note <text>` saves one note at launch.
+    private static func makeObsidian(store: NoteStore) -> ObsidianExporter {
+        let args = ProcessInfo.processInfo.arguments
+        func value(_ flag: String) -> String? {
+            args.firstIndex(of: flag).flatMap { args.indices.contains($0 + 1) ? args[$0 + 1] : nil }
+        }
+        guard let path = value("-teika-debug-vault") else { return ObsidianExporter(store: store) }
+        let root = URL(fileURLWithPath: path, isDirectory: true)
+        store.defaults.set(true, forKey: ObsidianExporter.enabledKey)
+        store.defaults.set(Data([1]), forKey: ObsidianExporter.bookmarkKey)
+        store.defaults.set(root.lastPathComponent, forKey: ObsidianExporter.vaultNameKey)
+        let obsidian = ObsidianExporter(store: store) { VaultWriter(root: root, scoped: false) }
+        if let text = value("-teika-debug-note") { _ = try? store.add(text: text) }
+        return obsidian
+    }
+    #endif
 
     var body: some Scene {
         WindowGroup {
             ContentView(transcriber: transcriber, store: store, watchInbox: watchInbox, exporter: exporter)
                 .preferredColorScheme(.dark)
+                .environment(obsidian)
         }
         .modelContainer(store.container)
     }

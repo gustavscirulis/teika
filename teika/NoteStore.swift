@@ -18,6 +18,8 @@ final class NoteStore {
     let container: ModelContainer
     let defaults: UserDefaults
     var onNoteSaved: (() -> Void)?
+    /// Separate from `onNoteSaved`, which the task exporter owns.
+    var onVaultNoteSaved: (() -> Void)?
 
     init(inMemory: Bool = false, defaults: UserDefaults = .standard, storeURL: URL? = nil) throws {
         self.defaults = defaults
@@ -37,6 +39,7 @@ final class NoteStore {
         container.mainContext.insert(note)
         try container.mainContext.save()
         onNoteSaved?()
+        onVaultNoteSaved?()
         return note
     }
 
@@ -57,10 +60,12 @@ final class NoteStore {
         container.mainContext.insert(note)
         try container.mainContext.save()
         onNoteSaved?()
+        onVaultNoteSaved?()
         return WatchInsert(note: note, inserted: true)
     }
 
     private func prepareTaskExport(_ note: Note) {
+        if ObsidianExporter.isActive(in: defaults) { note.vaultState = .pending }
         let app = TaskExportApp.selected(in: defaults)
         guard app != .off else { return }
         note.taskExportAppRaw = app.rawValue

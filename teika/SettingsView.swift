@@ -2,12 +2,15 @@ import Combine
 import EventKit
 import SwiftUI
 import UIKit
+import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @Bindable var exporter: TaskExportCoordinator
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
     @State private var showsDuplicateWarning = false
+    @Environment(ObsidianExporter.self) private var obsidian: ObsidianExporter?
+    @State private var choosesVault = false
 
     var body: some View {
         Form {
@@ -71,6 +74,8 @@ struct SettingsView: View {
                 }
             }
 
+            if let obsidian { obsidianSections(obsidian) }
+
             Section {
                 Link(destination: URL(string: "https://teika.app/privacy/")!) {
                     Label("Privacy Policy", systemImage: "hand.raised")
@@ -85,6 +90,10 @@ struct SettingsView: View {
         }
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
+        .fileImporter(isPresented: $choosesVault, allowedContentTypes: [.folder]) { result in
+            if case .success(let url) = result { obsidian?.chooseVault(url) }
+        }
+        .task { await obsidian?.refreshSettings() }
         .task {
             if exporter.app == .reminders { await exporter.requestRemindersAccess() }
             else { exporter.refreshReminders() }
@@ -106,6 +115,71 @@ struct SettingsView: View {
             }
         } message: {
             Text("Check \(exporter.blockedNote?.exportApp.receiptName ?? "the task app") first. Retrying may create a duplicate. Choose Skip if it’s already there.")
+        }
+    }
+
+    @ViewBuilder
+    private func obsidianSections(_ obsidian: ObsidianExporter) -> some View {
+        Section {
+            if let name = obsidian.vaultName {
+                Toggle("Save notes to Obsidian", isOn: Binding(
+                    get: { obsidian.isEnabled }, set: { obsidian.setEnabled($0) }))
+                LabeledContent("Vault", value: name)
+                Button("Choose another vault…") { choosesVault = true }
+                Button("Disconnect vault", role: .destructive) { obsidian.removeVault() }
+            } else {
+                Button("Choose vault folder…") { choosesVault = true }
+            }
+            if let error = obsidian.setupError ?? obsidian.lastError {
+                Text(error).foregroundStyle(.red)
+            }
+        } header: {
+            Text("Obsidian")
+        } footer: {
+            if obsidian.vaultName == nil {
+                Text("Pick your vault’s folder, for example iCloud Drive › Obsidian › My Vault. Each new note is saved there as its own Markdown file, without opening Obsidian.")
+            } else {
+                Text("Each new note becomes its own file. Edits in Teika update it until the file is changed in Obsidian.")
+            }
+        }
+
+        if obsidian.vaultName != nil {
+            Section {
+                overrideField(
+                    "Folder", placeholder: obsidian.vaultSettings.map {
+                        $0.folder.trimmed.isEmpty || $0.folder == "/" ? "Vault root" : $0.folder
+                    } ?? "Vault root",
+                    text: Binding(get: { obsidian.overrides.folder },
+                                  set: { obsidian.overrides.folder = $0 }))
+                overrideField(
+                    "File name", placeholder: obsidian.vaultSettings?.filenameFormat
+                        ?? VaultNoteSettings.defaultFilenameFormat,
+                    text: Binding(get: { obsidian.overrides.filenameFormat },
+                                  set: { obsidian.overrides.filenameFormat = $0 }))
+                overrideField(
+                    "Template", placeholder: obsidian.vaultSettings.map {
+                        $0.templatePath.trimmed.isEmpty ? "None" : $0.templatePath
+                    } ?? "None",
+                    text: Binding(get: { obsidian.overrides.templatePath },
+                                  set: { obsidian.overrides.templatePath = $0 }))
+                if let example = obsidian.examplePath {
+                    LabeledContent("Next note", value: example)
+                        .font(.footnote)
+                }
+            } header: {
+                Text("New notes")
+            } footer: {
+                Text("Empty fields use your vault’s Unique note creator settings. File names use Obsidian’s date format (YYYY-MM-DD HHmm); a folder can include {{date:YYYY}}. In the template, {{date}}, {{time}} and {{title}} work as in Obsidian, and {{text}} marks where the transcript goes. Without it, the transcript follows the template.")
+            }
+        }
+    }
+
+    private func overrideField(_ title: String, placeholder: String, text: Binding<String>) -> some View {
+        LabeledContent(title) {
+            TextField(placeholder, text: text)
+                .multilineTextAlignment(.trailing)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
         }
     }
 
