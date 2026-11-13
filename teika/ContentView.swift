@@ -20,6 +20,7 @@ struct ContentView: View {
     let store: NoteStore
     let watchInbox: WatchNoteInbox
     let exporter: TaskExportCoordinator
+    @Environment(ObsidianExporter.self) private var obsidian: ObsidianExporter?
     @Query private var notes: [Note]
     @AppStorage("showsRecordingShortcutPrompt") private var showsRecordingShortcutPrompt = true
     private let launcher = RecordingLauncher.shared
@@ -164,6 +165,12 @@ struct ContentView: View {
                 isActive: scenePhase == .active, canDispatch: exportAvailability)
         }
         .onChange(of: notes.count) { exporter.refresh() }
+        .onChange(of: scenePhase) { _, phase in
+            // Catch up on anything that failed (iCloud offline, say) when coming back,
+            // and finish writing before iOS suspends the app.
+            if phase == .active { obsidian?.syncAllPending() }
+            if phase == .background { Task { await obsidian?.flush() } }
+        }
         #if DEBUG
         .overlay {
             // The drawer itself must not appear in an App Store capture. Dial values are

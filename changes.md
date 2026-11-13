@@ -15,6 +15,7 @@ against `f420a77..d5344f9` (PR #9).
 
 - [automatic-task-exports] Optionally turn each new voice note into a task in Things or Apple Reminders; existing notes and later edits are not exported.
 - [task-export-settings] Choose Off, Things, or Apple Reminders in Notes Settings, with Things Inbox/Today and Reminders list and No date/Today controls.
+- [obsidian-vault-export] Optionally save each new note into an Obsidian vault folder as its own Markdown file, named and filled from the vault's Unique note creator and template settings (with folder, file name and template overrides); edits in Teika update the file until it is changed in Obsidian.
 - [persistent-task-delivery] Keep delivery progress for iPhone and Watch notes, with background Watch notes waiting until Teika is open and idle.
 
 ## Changed
